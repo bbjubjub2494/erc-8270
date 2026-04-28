@@ -1,0 +1,10 @@
+[profile.default]
+libs = ["dependencies"]
+solc_version = "0.8.34"
+
+[soldeer]
+recursive_deps = true
+remappings_generate = false
+
+[dependencies]
+forge-std = "1.16.0"
