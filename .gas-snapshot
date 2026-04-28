@@ -1,2 +1,6 @@
-CounterTest:testFuzz_SetNumber(uint256) (runs: 256, μ: 26654, ~: 28831)
-CounterTest:test_Increment() (gas: 28420)
+ERCXXXXTest:test_mint(bytes32,bytes16) (runs: 257, μ: 191958, ~: 200399)
+ERCXXXXTest:test_mint_already_minted() (gas: 89201)
+ERCXXXXTest:test_storage_layout() (gas: 110578)
+ERCXXXXTest:test_supports_interface() (gas: 7820)
+ERCXXXXTest:test_transfer() (gas: 172484)
+ERCXXXXTest:test_unauthorized() (gas: 42192)
