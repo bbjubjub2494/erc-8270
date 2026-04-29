@@ -1,8 +1,6 @@
 @external
 @payable
-def _request_withdrawal(
-    validatorKeyHi: bytes32, validatorKeyLo: bytes16, amount: uint64
-):
+def _request_withdrawal(validatorKeyHi: bytes32, validatorKeyLo: bytes16, amount: uint64):
     ...
 
 

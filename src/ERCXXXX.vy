@@ -72,9 +72,7 @@ def check_exists(token_id: uint256):
 def check_allowed(token_id: uint256) -> address:
     owner: address = self._owner(token_id)
     if msg.sender != owner and msg.sender != self.token_data[token_id].approved:
-        assert self.approval_for_all[owner][
-            msg.sender
-        ], "ERC-721: not owner or approved"
+        assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or approved"
     return owner
 
 
@@ -127,9 +125,7 @@ def _transfer(owner: address, receiver: address, token_id: uint256):
     assert owner == self.check_allowed(token_id), "ERC-721: wrong owner"
     assert receiver != empty(address), "ERC-721: transfer to zero"
     self.token_data[token_id].owner = receiver
-    self.token_data[token_id].approved = empty(
-        address
-    )  # TODO: is this supposed receiver reset?
+    self.token_data[token_id].approved = empty(address)
     self.balances[owner] -= 1
     self.balances[receiver] += 1
     log IERC721.Transfer(sender=owner, receiver=receiver, token_id=token_id)
@@ -140,13 +136,9 @@ def _transfer(owner: address, receiver: address, token_id: uint256):
 def _mint(receiver: address, token_id: uint256):
     assert receiver != empty(address), "ERC-721: mint to zero"
     self.token_data[token_id].owner = receiver
-    self.token_data[token_id].approved = empty(
-        address
-    )  # TODO: is this supposed receiver reset?
+    self.token_data[token_id].approved = empty(address)
     self.balances[receiver] += 1
-    log IERC721.Transfer(
-        sender=empty(address), receiver=receiver, token_id=token_id
-    )
+    log IERC721.Transfer(sender=empty(address), receiver=receiver, token_id=token_id)
 
 
 @internal
@@ -192,9 +184,7 @@ def mint(
     withdrawal_address: address = create_minimal_proxy_to(
         WITHDRAWAL_RECEIVER_IMPL,
         revert_on_failure=False,
-        salt=keccak256(
-            abi_encode(validator_key_hi, validator_key_lo, initial_owner)
-        ),
+        salt=keccak256(abi_encode(validator_key_hi, validator_key_lo, initial_owner)),
     )
     assert withdrawal_address != empty(address), "ERC-XXXX: already minted"
 
@@ -254,9 +244,7 @@ def requestFullWithdrawal(token_id: uint256):
 
 @external
 @payable
-def requestConsolidation(
-    token_id: uint256, targetKeyHi: bytes32, targetKeyLo: bytes16
-):
+def requestConsolidation(token_id: uint256, targetKeyHi: bytes32, targetKeyLo: bytes16):
     self.check_allowed(token_id)
     extcall self.withdrawal_receiver(token_id)._request_consolidation(
         self.token_data[token_id].validator_key_hi,
@@ -290,6 +278,4 @@ def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
 @payable
 def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
     self.check_allowed(token_id)
-    extcall self.withdrawal_receiver(token_id)._arbitrary_call(
-        target, data, value=msg.value
-    )
+    extcall self.withdrawal_receiver(token_id)._arbitrary_call(target, data, value=msg.value)
