@@ -10,6 +10,9 @@ import {IERC721} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol"
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
 
 contract ERCXXXXTest is Test {
+    address constant WITHDRAWAL_REQUESTS = 0x00000961Ef480Eb55e80D19ad83579A64c007002; // EIP-7002 contract
+    address constant CONSOLIDATION_REQUESTS = 0x0000BBdDc7CE488642fb579F8B00f3a590007251; // EIP-7251 contract
+
     address user1 = makeAddr("user 1");
     address user2 = makeAddr("user 2");
     address user3 = makeAddr("user 3");
@@ -21,7 +24,8 @@ contract ERCXXXXTest is Test {
     uint256 id1;
 
     function setUp() external {
-        dut = IERCXXXX(deployCode("src/ERCXXXX.vy"));
+        bytes memory wrCode = vm.getCode("src/WithdrawalReceiver.vy");
+        dut = IERCXXXX(deployCode("src/ERCXXXX.vy", abi.encode(wrCode)));
         vm.prank(user1);
         id1 = dut.mint(validatorKey1Hi, validatorKey1Lo, user1);
     }
@@ -46,6 +50,7 @@ contract ERCXXXXTest is Test {
     // ERC-721 //
 
     function test_mint(bytes32 validatorKey2Hi, bytes16 validatorKey2Lo) external {
+        vm.assume(validatorKey2Hi >= hex"80");
         assertEq(dut.ownerOf(id1), user1);
         (bytes32 hi, bytes16 lo) = dut.validatorKeyOf(id1);
         assertEq(hi, validatorKey1Hi);
@@ -62,7 +67,7 @@ contract ERCXXXXTest is Test {
 
     function test_mint_already_minted() external {
         // same user and validator, should fail due to create2 collision
-        //vm.expectRevert("ERC-XXXX: already minted");
+        vm.expectRevert("ERC-XXXX: already minted");
         dut.mint(validatorKey1Hi, validatorKey1Lo, user1);
     }
 
@@ -113,5 +118,139 @@ contract ERCXXXXTest is Test {
         vm.prank(user1);
         dut.setApprovalForAll(user2, false);
         assertFalse(dut.isApprovedForAll(user1, user2));
+    }
+
+    // ERC-XXXX //
+
+    function _mockQueryFee(address systemContract, uint256 fee) internal {
+        vm.mockCall(systemContract, bytes(""), abi.encode(fee));
+    }
+
+    function _mockWithdrawalRequest(uint256 fee, uint64 amount) internal {
+        _mockQueryFee(WITHDRAWAL_REQUESTS, fee);
+        vm.expectCall(WITHDRAWAL_REQUESTS, fee, bytes.concat(validatorKey1Hi, validatorKey1Lo, bytes8(amount)));
+    }
+
+    function _mockConsolidationRequest(uint256 fee, bytes32 validatorKey2Hi, bytes16 validatorKey2Lo) internal {
+        _mockQueryFee(CONSOLIDATION_REQUESTS, fee);
+        vm.expectCall(
+            CONSOLIDATION_REQUESTS,
+            fee,
+            bytes.concat(validatorKey1Hi, validatorKey1Lo, validatorKey2Hi, validatorKey2Lo)
+        );
+    }
+
+    function test_request_full_withdrawal() public {
+        uint256 fee = 1 wei;
+
+        _mockWithdrawalRequest(fee, 0);
+        hoax(user1, 1 ether);
+        dut.requestFullWithdrawal{value: 2}(id1);
+
+        hoax(user2, 1 ether);
+        vm.expectRevert("ERC-721: not owner or approved");
+        dut.requestFullWithdrawal{value: 2}(id1);
+    }
+
+    function test_request_full_withdrawal_fee_from_receiver() public {
+        uint256 fee = 1 gwei;
+        vm.deal(dut.withdrawalAddressOf(id1), fee);
+
+        _mockWithdrawalRequest(fee, 0);
+        vm.prank(user1);
+        dut.requestFullWithdrawal(id1);
+    }
+
+    function test_request_partial_withdrawal(uint64 amount) public {
+        vm.assume(amount != 0);
+        uint256 fee = 1 wei;
+
+        _mockWithdrawalRequest(fee, amount);
+        hoax(user1, 1 ether);
+        dut.requestPartialWithdrawal{value: 2}(id1, uint256(amount) * 1e9);
+
+        hoax(user2, 1 ether);
+        vm.expectRevert("ERC-721: not owner or approved");
+        dut.requestPartialWithdrawal{value: 2}(id1, uint256(amount) * 1e9);
+    }
+
+    function test_request_partial_withdrawal_fee_from_receiver(uint64 amount) public {
+        vm.assume(amount != 0);
+        uint256 fee = 1 gwei;
+        vm.deal(dut.withdrawalAddressOf(id1), fee);
+
+        _mockWithdrawalRequest(fee, amount);
+        vm.prank(user1);
+        dut.requestPartialWithdrawal(id1, uint256(amount) * 1e9);
+    }
+
+    function test_request_switch_to_compounding_withdrawal() public {
+        uint256 fee = 1 wei;
+
+        _mockConsolidationRequest(fee, validatorKey1Hi, validatorKey1Lo);
+        hoax(user1, 1 ether);
+        dut.requestSwitchToCompounding{value: 2}(id1);
+
+        hoax(user2, 1 ether);
+        vm.expectRevert("ERC-721: not owner or approved");
+        dut.requestSwitchToCompounding{value: 2}(id1);
+    }
+
+    function test_request_switch_to_compounding_fee_from_receiver() public {
+        uint256 fee = 1 gwei;
+        vm.deal(dut.withdrawalAddressOf(id1), fee);
+
+        _mockConsolidationRequest(fee, validatorKey1Hi, validatorKey1Lo);
+        vm.prank(user1);
+        dut.requestSwitchToCompounding(id1);
+    }
+
+    function test_request_consolidation(bytes32 validatorKey2Hi, bytes16 validatorKey2Lo) public {
+        uint256 fee = 1 wei;
+
+        _mockConsolidationRequest(fee, validatorKey2Hi, validatorKey2Lo);
+        hoax(user1, 1 ether);
+        dut.requestConsolidation{value: 2}(id1, validatorKey2Hi, validatorKey2Lo);
+
+        hoax(user2, 1 ether);
+        vm.expectRevert("ERC-721: not owner or approved");
+        dut.requestConsolidation{value: 2}(id1, validatorKey2Hi, validatorKey2Lo);
+    }
+
+    function test_request_consolidation_fee_from_receiver(bytes32 validatorKey2Hi, bytes16 validatorKey2Lo) public {
+        uint256 fee = 1 gwei;
+        vm.deal(dut.withdrawalAddressOf(id1), fee);
+
+        _mockConsolidationRequest(fee, validatorKey2Hi, validatorKey2Lo);
+        vm.prank(user1);
+        dut.requestConsolidation(id1, validatorKey2Hi, validatorKey2Lo);
+    }
+
+    function test_pull_native_balance(address destination) public {
+        assumeNotPrecompile(destination);
+        assumePayable(destination);
+
+        vm.deal(dut.withdrawalAddressOf(id1), 1 ether);
+
+        vm.expectRevert("ERC-721: not owner or approved");
+        vm.prank(user2);
+        dut.pullNativeBalance(id1, destination);
+
+        vm.expectCall(destination, 1 ether, "");
+        vm.prank(user1);
+        dut.pullNativeBalance(id1, destination);
+    }
+
+    function test_arbitrary_call(address target, uint256 value, bytes calldata data) public {
+        assumeNotPrecompile(target);
+        assumePayable(target);
+
+        vm.expectRevert("ERC-721: not owner or approved");
+        hoax(user2, value);
+        dut.arbitraryCall{value: value}(id1, target, data);
+
+        vm.expectCall(target, value, data);
+        hoax(user1, value);
+        dut.arbitraryCall{value: value}(id1, target, data);
     }
 }

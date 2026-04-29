@@ -1,0 +1,29 @@
+@external
+@payable
+def _request_withdrawal(
+    validatorKeyHi: bytes32, validatorKeyLo: bytes16, amount: uint64
+):
+    ...
+
+
+@external
+@payable
+def _request_consolidation(
+    sourceKeyHi: bytes32,
+    sourceKeyLo: bytes16,
+    targetKeyHi: bytes32,
+    targetKeyLo: bytes16,
+):
+    ...
+
+
+@external
+@payable
+def _pull_native_balance(destination: address):
+    ...
+
+
+@external
+@payable
+def _arbitrary_call(target: address, data: Bytes[65536] = b""):
+    ...

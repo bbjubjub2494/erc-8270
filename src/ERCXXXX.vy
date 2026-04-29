@@ -1,5 +1,7 @@
 # pragma version ~=0.4.3
 
+from src.interfaces import IWithdrawalReceiver
+
 from ethereum.ercs import IERC721
 
 implements: IERC721
@@ -24,9 +26,12 @@ approval_for_all: HashMap[address, HashMap[address, bool]]
 _padding: bytes32[245]
 token_data: TokenData[2**128]
 
+WITHDRAWAL_RECEIVER_IMPL: immutable(address)
+
 
 @deploy
-def __init__():
+def __init__(withdrawal_receiver_code: Bytes[49152]):
+    WITHDRAWAL_RECEIVER_IMPL = raw_create(withdrawal_receiver_code)
     self.next_id = 1
 
 
@@ -54,6 +59,12 @@ def _owner(token_id: uint256) -> address:
     owner: address = self.token_data[token_id].owner
     assert owner != empty(address), "ERC-721: token does not exist"
     return owner
+
+
+@internal
+@view
+def check_exists(token_id: uint256):
+    self._owner(token_id)
 
 
 @internal
@@ -88,7 +99,7 @@ def ownerOf(token_id: uint256) -> address:
 @external
 @view
 def getApproved(token_id: uint256) -> address:
-    self._owner(token_id)
+    self.check_exists(token_id)
     return self.token_data[token_id].approved
 
 
@@ -163,26 +174,122 @@ def safeTransferFrom(
 
 ## ERC-XXXX ##
 
+@internal
+@view
+def withdrawal_receiver(token_id: uint256) -> IWithdrawalReceiver:
+    return IWithdrawalReceiver(self.token_data[token_id].withdrawal_address)
+
+
 @external
 def mint(
     validator_key_hi: bytes32,
     validator_key_lo: bytes16,
     initial_owner: address = msg.sender,
 ) -> uint256:
+    # compressed BLS12 points start with flags, hence structurally cannot be zero
+    # we use this to save an sload in validatorKeyOf()
+    assert validator_key_hi != empty(bytes32), "ERC-XXXX: invalid validator key"
+    withdrawal_address: address = create_minimal_proxy_to(
+        WITHDRAWAL_RECEIVER_IMPL,
+        revert_on_failure=False,
+        salt=keccak256(
+            abi_encode(validator_key_hi, validator_key_lo, initial_owner)
+        ),
+    )
+    assert withdrawal_address != empty(address), "ERC-XXXX: already minted"
+
     token_id: uint256 = self.next_id
     self.next_id = token_id + 1
     self._mint(initial_owner, token_id)
     self.token_data[token_id].owner = initial_owner
     self.token_data[token_id].validator_key_hi = validator_key_hi
     self.token_data[token_id].validator_key_lo = validator_key_lo
-    # TODO: deploy withdrawal_address
+    self.token_data[token_id].withdrawal_address = withdrawal_address
     return token_id
 
 
 @external
 @view
 def validatorKeyOf(token_id: uint256) -> (bytes32, bytes16):
+    validator_key_hi: bytes32 = self.token_data[token_id].validator_key_hi
+    assert validator_key_hi != empty(bytes32), "ERC-721: token does not exist"
     return (
+        validator_key_hi,
+        self.token_data[token_id].validator_key_lo,
+    )
+
+
+@external
+@view
+def withdrawalAddressOf(token_id: uint256) -> address:
+    withdrawal_address: address = self.token_data[token_id].withdrawal_address
+    assert withdrawal_address != empty(address), "ERC-721: token does not exist"
+    return withdrawal_address
+
+
+@external
+@payable
+def requestPartialWithdrawal(token_id: uint256, amount: uint256):
+    self.check_allowed(token_id)
+    assert amount != 0, "ERC-XXXX: zero partial withdrawal amount"
+    extcall self.withdrawal_receiver(token_id)._request_withdrawal(
         self.token_data[token_id].validator_key_hi,
         self.token_data[token_id].validator_key_lo,
+        convert(amount // 1_000_000_000, uint64),
+        value=msg.value,
+    )
+
+
+@external
+@payable
+def requestFullWithdrawal(token_id: uint256):
+    self.check_allowed(token_id)
+    extcall self.withdrawal_receiver(token_id)._request_withdrawal(
+        self.token_data[token_id].validator_key_hi,
+        self.token_data[token_id].validator_key_lo,
+        0,
+        value=msg.value,
+    )
+
+
+@external
+@payable
+def requestConsolidation(
+    token_id: uint256, targetKeyHi: bytes32, targetKeyLo: bytes16
+):
+    self.check_allowed(token_id)
+    extcall self.withdrawal_receiver(token_id)._request_consolidation(
+        self.token_data[token_id].validator_key_hi,
+        self.token_data[token_id].validator_key_lo,
+        targetKeyHi,
+        targetKeyLo,
+        value=msg.value,
+    )
+
+
+@external
+@payable
+def requestSwitchToCompounding(token_id: uint256):
+    self.check_allowed(token_id)
+    extcall self.withdrawal_receiver(token_id)._request_consolidation(
+        self.token_data[token_id].validator_key_hi,
+        self.token_data[token_id].validator_key_lo,
+        self.token_data[token_id].validator_key_hi,
+        self.token_data[token_id].validator_key_lo,
+        value=msg.value,
+    )
+
+
+@external
+def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
+    self.check_allowed(token_id)
+    extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
+
+
+@external
+@payable
+def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
+    self.check_allowed(token_id)
+    extcall self.withdrawal_receiver(token_id)._arbitrary_call(
+        target, data, value=msg.value
     )
