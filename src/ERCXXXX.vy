@@ -19,7 +19,7 @@ struct TokenData:
 
 
 next_id: public(uint256)
-balances: HashMap[address, uint256]
+tokens_by_owner: HashMap[address, DynArray[uint256, 2**64]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
 
 # this puts the unused 0th element at 0xe8 and the first NFT at 0x100
@@ -37,10 +37,10 @@ def __init__(withdrawal_receiver_code: Bytes[49152]):
 
 ### ERC-165 ###
 
-SUPPORTED_INTERFACES: constant(bytes4[2]) = [
+SUPPORTED_INTERFACES: constant(bytes4[3]) = [
     0x01ffc9a7,  # ERC-165
     0x80ac58cd,  # ERC-721
-    # 0x780e9d63, # ERC-721 enumeration # TODO decide
+    0x780e9d63,  # ERC-721 enumeration
     # TODO ERC-5646, ERC-XXXX
 ]
 
@@ -78,14 +78,8 @@ def check_allowed(token_id: uint256) -> address:
 
 @external
 @view
-def totalSupply() -> uint256:
-    return self.next_id
-
-
-@external
-@view
 def balanceOf(owner: address) -> uint256:
-    return self.balances[owner]
+    return len(self.tokens_by_owner[owner])
 
 
 @external
@@ -126,8 +120,14 @@ def _transfer(owner: address, receiver: address, token_id: uint256):
     assert receiver != empty(address), "ERC-721: transfer to zero"
     self.token_data[token_id].owner = receiver
     self.token_data[token_id].approved = empty(address)
-    self.balances[owner] -= 1
-    self.balances[receiver] += 1
+    l: uint256 = len(self.tokens_by_owner[owner])
+    for i: uint256 in range(l, bound=2**64):
+        # FIXME: use token data to store index instead
+        if self.tokens_by_owner[owner][i] == token_id:
+            self.tokens_by_owner[owner][i] = self.tokens_by_owner[owner][l - 1]
+            self.tokens_by_owner[owner].pop()
+            break
+    self.tokens_by_owner[receiver].append(token_id)
     log IERC721.Transfer(sender=owner, receiver=receiver, token_id=token_id)
 
 
@@ -137,7 +137,7 @@ def _mint(receiver: address, token_id: uint256):
     assert receiver != empty(address), "ERC-721: mint to zero"
     self.token_data[token_id].owner = receiver
     self.token_data[token_id].approved = empty(address)
-    self.balances[receiver] += 1
+    self.tokens_by_owner[receiver].append(token_id)
     log IERC721.Transfer(sender=empty(address), receiver=receiver, token_id=token_id)
 
 
@@ -162,6 +162,28 @@ def safeTransferFrom(
 ):
     self._transfer(owner, receiver, token_id)
     self._call_erc721receiver(receiver, token_id)
+
+
+## ERC-721 Enumerable ##
+
+@external
+@view
+def totalSupply() -> uint256:
+    return self.next_id - 1
+
+
+@external
+@view
+def tokenByIndex(index: uint256) -> uint256:
+    assert index < self.next_id - 1, "ERC-721: invalid index"
+    return index + 1
+
+
+@external
+@view
+def tokenOfOwnerByIndex(owner: address, index: uint256) -> uint256:
+    assert index < len(self.tokens_by_owner[owner]), "ERC-721: invalid index"
+    return self.tokens_by_owner[owner][index]
 
 
 ## ERC-XXXX ##

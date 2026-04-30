@@ -26,6 +26,14 @@ contract ERCXXXXTest is Test {
     function setUp() external {
         bytes memory wrCode = vm.getCode("src/WithdrawalReceiver.vy");
         dut = IERCXXXX(deployCode("src/ERCXXXX.vy", abi.encode(wrCode)));
+
+        assertEq(dut.totalSupply(), 0);
+        vm.expectRevert("ERC-721: invalid index");
+        dut.tokenByIndex(0);
+        assertEq(dut.balanceOf(user1), 0);
+        vm.expectRevert("ERC-721: invalid index");
+        dut.tokenOfOwnerByIndex(user1, 0);
+
         vm.prank(user1);
         id1 = dut.mint(validatorKey1Hi, validatorKey1Lo, user1);
     }
@@ -51,6 +59,7 @@ contract ERCXXXXTest is Test {
 
     function test_mint(bytes32 validatorKey2Hi, bytes16 validatorKey2Lo) external {
         vm.assume(validatorKey2Hi >= hex"80");
+
         assertEq(dut.ownerOf(id1), user1);
         (bytes32 hi, bytes16 lo) = dut.validatorKeyOf(id1);
         assertEq(hi, validatorKey1Hi);
@@ -118,6 +127,85 @@ contract ERCXXXXTest is Test {
         vm.prank(user1);
         dut.setApprovalForAll(user2, false);
         assertFalse(dut.isApprovedForAll(user1, user2));
+    }
+
+    // ERC-721 Enumerable //
+
+    function _checkTokensByIndex(uint256[] memory expected) internal {
+        _checkTokensOfOwnerByIndex(address(0), expected);
+    }
+
+    function _checkTokensOfOwnerByIndex(address owner, uint256[] memory expected) internal {
+        bool total = owner == address(0);
+        assertEq(total ? dut.totalSupply() : dut.balanceOf(owner), expected.length);
+        for (uint256 i = 0; i < expected.length; i++) {
+            assertEq(total ? dut.tokenByIndex(i) : dut.tokenOfOwnerByIndex(owner, i), expected[i]);
+        }
+        vm.expectRevert("ERC-721: invalid index");
+        if (total) {
+            dut.tokenByIndex(expected.length);
+        } else {
+            dut.tokenOfOwnerByIndex(owner, expected.length);
+        }
+    }
+
+    // workaround for no literals
+    function _a() internal pure returns (uint256[] memory a) {
+        a = new uint256[](0);
+    }
+
+    function _a(uint256 v0) internal pure returns (uint256[] memory a) {
+        a = new uint256[](1);
+        a[0] = v0;
+    }
+
+    function _a(uint256 v0, uint256 v1) internal pure returns (uint256[] memory a) {
+        a = new uint256[](2);
+        a[0] = v0;
+        a[1] = v1;
+    }
+
+    function _a(uint256 v0, uint256 v1, uint256 v2) internal pure returns (uint256[] memory a) {
+        a = new uint256[](3);
+        a[0] = v0;
+        a[1] = v1;
+        a[2] = v2;
+    }
+
+    function test_enumerate() external {
+        bytes32 validatorKey2Hi = 0x8111111111111111111111111111111111111111111111111111111111111111;
+        bytes16 validatorKey2Lo = 0x22222222222222222222222222222222;
+
+        _checkTokensByIndex(_a(id1));
+        _checkTokensOfOwnerByIndex(user1, _a(id1));
+
+        // different validator, same user
+        uint256 id2 = dut.mint(validatorKey2Hi, validatorKey2Lo, user1);
+        _checkTokensByIndex(_a(id1, id2));
+        _checkTokensOfOwnerByIndex(user1, _a(id1, id2));
+
+        // different user, same validator
+        assertEq(dut.balanceOf(user2), 0);
+        uint256 id3 = dut.mint(validatorKey1Hi, validatorKey1Lo, user2);
+        _checkTokensByIndex(_a(id1, id2, id3));
+        _checkTokensOfOwnerByIndex(user2, _a(id3));
+
+        vm.prank(user1);
+        dut.transferFrom(user1, user3, id1);
+        _checkTokensByIndex(_a(id1, id2, id3));
+        _checkTokensOfOwnerByIndex(user1, _a(id2));
+        _checkTokensOfOwnerByIndex(user3, _a(id1));
+
+        vm.prank(user2);
+        dut.transferFrom(user2, user3, id3);
+        _checkTokensByIndex(_a(id1, id2, id3));
+        _checkTokensOfOwnerByIndex(user2, _a());
+        _checkTokensOfOwnerByIndex(user3, _a(id1, id3));
+
+        vm.prank(user3);
+        dut.transferFrom(user3, user2, id3);
+        _checkTokensOfOwnerByIndex(user3, _a(id1));
+        _checkTokensOfOwnerByIndex(user2, _a(id3));
     }
 
     // ERC-XXXX //
