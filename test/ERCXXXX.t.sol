@@ -5,7 +5,7 @@ import {Test} from "dependencies/forge-std-1.16.0/src/Test.sol";
 
 import {IERC20} from "dependencies/forge-std-1.16.0/src/interfaces/IERC20.sol";
 import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
-import {IERC721} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
 
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
 
@@ -119,14 +119,47 @@ contract ERCXXXXTest is Test {
         assertTrue(dut.isApprovedForAll(user1, user2));
 
         vm.prank(user2);
-        vm.expectRevert(bytes("TODO"));
         dut.safeTransferFrom(user1, user3, id1);
-        // assertEq(dut.ownerOf(id1), user3);
+        assertEq(dut.ownerOf(id1), user3);
         assertTrue(dut.isApprovedForAll(user1, user2));
 
         vm.prank(user1);
         dut.setApprovalForAll(user2, false);
         assertFalse(dut.isApprovedForAll(user1, user2));
+    }
+
+    function test_safe_transfer_1() public {
+        // not a contract = no call
+        vm.prank(user1);
+        vm.expectCall(user2, "", 0);
+        dut.safeTransferFrom(user1, user2, id1);
+    }
+
+    function test_safe_transfer_2() public {
+        vm.etch(user2, "code");
+        vm.expectCall(user2, abi.encodeCall(IERC721TokenReceiver.onERC721Received, (user1, user1, id1, "")));
+        vm.mockCall(user2, bytes(""), abi.encode(IERC721TokenReceiver.onERC721Received.selector));
+        vm.prank(user1);
+        dut.safeTransferFrom(user1, user2, id1);
+    }
+
+    function test_safe_transfer_3() public {
+        vm.etch(user2, "code");
+        vm.expectCall(user2, abi.encodeCall(IERC721TokenReceiver.onERC721Received, (user1, user1, id1, "")));
+        vm.mockCall(user2, bytes(""), abi.encode(bytes4(0x12345678)));
+        vm.expectRevert("ERC-721: receiver rejected transfer");
+        vm.prank(user1);
+        dut.safeTransferFrom(user1, user2, id1);
+    }
+
+    function test_safe_transfer_4() public {
+        vm.etch(user2, "code");
+        vm.expectCall(user2, abi.encodeCall(IERC721TokenReceiver.onERC721Received, (user3, user1, id1, "data")));
+        vm.mockCall(user2, bytes(""), abi.encode(IERC721TokenReceiver.onERC721Received.selector));
+        vm.prank(user1);
+        dut.approve(user3, id1);
+        vm.prank(user3);
+        dut.safeTransferFrom(user1, user2, id1, "data");
     }
 
     // ERC-721 Enumerable //

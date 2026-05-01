@@ -4,6 +4,13 @@ from src.interfaces import IWithdrawalReceiver
 
 from ethereum.ercs import IERC721
 
+
+interface ERC721Receiver:
+    def onERC721Received(
+        sender: address, owner: address, token_id: uint256, data: Bytes[1024]
+    ) -> bytes4: nonpayable
+
+
 implements: IERC721
 
 # we store all the data associated with a token in an array of structs
@@ -158,11 +165,6 @@ def _mint(receiver: address, token_id: uint256):
     log IERC721.Transfer(sender=empty(address), receiver=receiver, token_id=token_id)
 
 
-@internal
-def _call_erc721receiver(receiver: address, token_id: uint256):
-    raise "TODO"
-
-
 @external
 @payable
 def transferFrom(owner: address, receiver: address, token_id: uint256):
@@ -178,7 +180,12 @@ def safeTransferFrom(
     data: Bytes[1024] = b"",
 ):
     self._transfer(owner, receiver, token_id)
-    self._call_erc721receiver(receiver, token_id)
+
+    if receiver.is_contract:
+        assert (
+            extcall ERC721Receiver(receiver).onERC721Received(msg.sender, owner, token_id, data)
+            == 0x150b7a02
+        ), "ERC-721: receiver rejected transfer"
 
 
 ## ERC-721 Enumerable ##
