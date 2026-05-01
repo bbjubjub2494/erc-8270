@@ -10,7 +10,7 @@ implements: IERC721
 # to increase locality and reduce hashing
 # preemptive optimisation for state warming update and hash gas cost increases.
 struct TokenData:
-    owner: address
+    index_and_owner: uint256
     approved: address
     validator_key_hi: bytes32
     validator_key_lo: bytes16
@@ -27,6 +27,21 @@ _padding: bytes32[245]
 token_data: TokenData[2**128]
 
 WITHDRAWAL_RECEIVER_IMPL: immutable(address)
+
+
+@internal
+@view
+def _pack(index_by_owner: uint96, owner: address) -> uint256:
+    return convert(index_by_owner, uint256) << 160 | convert(owner, uint256)
+
+
+@internal
+@view
+def _unpack(index_and_owner: uint256) -> (uint96, address):
+    index_by_owner: uint96 = convert(index_and_owner >> 160, uint96)
+    mask: uint256 = convert(max_value(uint160), uint256)
+    owner: address = convert(index_and_owner & mask, address)
+    return index_by_owner, owner
 
 
 @deploy
@@ -56,7 +71,7 @@ def supportsInterface(interface_id: bytes4) -> bool:
 @internal
 @view
 def _owner(token_id: uint256) -> address:
-    owner: address = self.token_data[token_id].owner
+    owner: address = self._unpack(self.token_data[token_id].index_and_owner)[1]
     assert owner != empty(address), "ERC-721: token does not exist"
     return owner
 
@@ -64,13 +79,12 @@ def _owner(token_id: uint256) -> address:
 @internal
 @view
 def check_exists(token_id: uint256):
-    self._owner(token_id)
+    assert self.token_data[token_id].index_and_owner != 0, "ERC-721: token does not exist"
 
 
 @internal
 @view
-def check_allowed(token_id: uint256) -> address:
-    owner: address = self._owner(token_id)
+def check_allowed(token_id: uint256, owner: address) -> address:
     if msg.sender != owner and msg.sender != self.token_data[token_id].approved:
         assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or approved"
     return owner
@@ -104,7 +118,7 @@ def isApprovedForAll(owner: address, operator: address) -> bool:
 @external
 @payable
 def approve(approved: address, token_id: uint256):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     self.token_data[token_id].approved = approved
     log IERC721.Approval(owner=msg.sender, approved=approved, token_id=token_id)
 
@@ -115,19 +129,21 @@ def setApprovalForAll(operator: address, approved: bool):
 
 
 @internal
-def _transfer(owner: address, receiver: address, token_id: uint256):
-    assert owner == self.check_allowed(token_id), "ERC-721: wrong owner"
+def _transfer(expected_owner: address, receiver: address, token_id: uint256):
+    index: uint96 = 0
+    owner: address = empty(address)
+    index, owner = self._unpack(self.token_data[token_id].index_and_owner)
+    assert owner == expected_owner, "ERC-721: wrong owner"
+    self.check_allowed(token_id, owner)
     assert receiver != empty(address), "ERC-721: transfer to zero"
-    self.token_data[token_id].owner = receiver
-    self.token_data[token_id].approved = empty(address)
-    l: uint256 = len(self.tokens_by_owner[owner])
-    for i: uint256 in range(l, bound=2**64):
-        # FIXME: use token data to store index instead
-        if self.tokens_by_owner[owner][i] == token_id:
-            self.tokens_by_owner[owner][i] = self.tokens_by_owner[owner][l - 1]
-            self.tokens_by_owner[owner].pop()
-            break
+    self.tokens_by_owner[owner][index] = (
+        self.tokens_by_owner[owner][len(self.tokens_by_owner[owner]) - 1]
+    )
+    self.tokens_by_owner[owner].pop()
+    index = convert(len(self.tokens_by_owner[receiver]), uint96)
     self.tokens_by_owner[receiver].append(token_id)
+    self.token_data[token_id].index_and_owner = self._pack(index, receiver)
+    self.token_data[token_id].approved = empty(address)
     log IERC721.Transfer(sender=owner, receiver=receiver, token_id=token_id)
 
 
@@ -135,9 +151,10 @@ def _transfer(owner: address, receiver: address, token_id: uint256):
 @internal
 def _mint(receiver: address, token_id: uint256):
     assert receiver != empty(address), "ERC-721: mint to zero"
-    self.token_data[token_id].owner = receiver
-    self.token_data[token_id].approved = empty(address)
+    index: uint96 = convert(len(self.tokens_by_owner[receiver]), uint96)
     self.tokens_by_owner[receiver].append(token_id)
+    self.token_data[token_id].index_and_owner = self._pack(index, receiver)
+    self.token_data[token_id].approved = empty(address)
     log IERC721.Transfer(sender=empty(address), receiver=receiver, token_id=token_id)
 
 
@@ -213,7 +230,6 @@ def mint(
     token_id: uint256 = self.next_id
     self.next_id = token_id + 1
     self._mint(initial_owner, token_id)
-    self.token_data[token_id].owner = initial_owner
     self.token_data[token_id].validator_key_hi = validator_key_hi
     self.token_data[token_id].validator_key_lo = validator_key_lo
     self.token_data[token_id].withdrawal_address = withdrawal_address
@@ -242,7 +258,7 @@ def withdrawalAddressOf(token_id: uint256) -> address:
 @external
 @payable
 def requestPartialWithdrawal(token_id: uint256, amount: uint256):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     assert amount != 0, "ERC-XXXX: zero partial withdrawal amount"
     extcall self.withdrawal_receiver(token_id)._request_withdrawal(
         self.token_data[token_id].validator_key_hi,
@@ -255,7 +271,7 @@ def requestPartialWithdrawal(token_id: uint256, amount: uint256):
 @external
 @payable
 def requestFullWithdrawal(token_id: uint256):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._request_withdrawal(
         self.token_data[token_id].validator_key_hi,
         self.token_data[token_id].validator_key_lo,
@@ -267,7 +283,7 @@ def requestFullWithdrawal(token_id: uint256):
 @external
 @payable
 def requestConsolidation(token_id: uint256, targetKeyHi: bytes32, targetKeyLo: bytes16):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._request_consolidation(
         self.token_data[token_id].validator_key_hi,
         self.token_data[token_id].validator_key_lo,
@@ -280,7 +296,7 @@ def requestConsolidation(token_id: uint256, targetKeyHi: bytes32, targetKeyLo: b
 @external
 @payable
 def requestSwitchToCompounding(token_id: uint256):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._request_consolidation(
         self.token_data[token_id].validator_key_hi,
         self.token_data[token_id].validator_key_lo,
@@ -292,12 +308,12 @@ def requestSwitchToCompounding(token_id: uint256):
 
 @external
 def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
 
 
 @external
 @payable
 def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
-    self.check_allowed(token_id)
+    self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._arbitrary_call(target, data, value=msg.value)
