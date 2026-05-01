@@ -241,6 +241,66 @@ contract ERCXXXXTest is Test {
         _checkTokensOfOwnerByIndex(user2, _a(id3));
     }
 
+    // ERC-5646 //
+
+    function test_state_fingerprint() public {
+        uint256 fee = 1 wei;
+        _mockQueryFee(WITHDRAWAL_REQUESTS, fee);
+        _mockQueryFee(CONSOLIDATION_REQUESTS, fee);
+        bytes32 validatorKey2Hi = 0x8111111111111111111111111111111111111111111111111111111111111111;
+        bytes16 validatorKey2Lo = 0x22222222222222222222222222222222;
+
+        bytes32 expected = vm.eip712HashStruct(
+            "Minted(bytes32 validatorKeyHi, bytes16 validatorKeyLo, address initialOwner)",
+            abi.encode(IERCXXXX.Minted(validatorKey1Hi, validatorKey1Lo, user1))
+        );
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        vm.prank(user1);
+        dut.pullNativeBalance(id1, user1);
+        expected = vm.eip712HashStruct(
+            "NativeBalancePulled(bytes32 previousFingerprint)", abi.encode(IERCXXXX.NativeBalancePulled(expected))
+        );
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        hoax(user1);
+        dut.requestFullWithdrawal{value: fee}(id1);
+        // no change
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        hoax(user1);
+        dut.requestPartialWithdrawal{value: fee}(id1, 1 ether);
+        // no change
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        hoax(user1);
+        dut.requestSwitchToCompounding{value: fee}(id1);
+        // no change
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        hoax(user1);
+        dut.requestConsolidation{value: fee}(id1, validatorKey2Hi, validatorKey2Lo);
+        expected = vm.eip712HashStruct(
+            "ConsolidationRequested(bytes32 previousFingerprint, bytes32 targetKeyHi, bytes16 targetKeyLo)",
+            abi.encode(IERCXXXX.ConsolidationRequested(expected, validatorKey2Hi, validatorKey2Lo))
+        );
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        vm.prank(user1);
+        dut.transferFrom(user1, user1, id1);
+        // no change
+        assertEq(dut.getStateFingerprint(id1), expected);
+
+        address target = makeAddr("target");
+        vm.prank(user1);
+        dut.arbitraryCall(id1, target, "data");
+        expected = vm.eip712HashStruct(
+            "ArbitraryCall(bytes32 previousFingerprint, address target, bytes data)",
+            abi.encode(IERCXXXX.ArbitraryCall(expected, target, "data"))
+        );
+        assertEq(dut.getStateFingerprint(id1), expected);
+    }
+
     // ERC-XXXX //
 
     function _mockQueryFee(address systemContract, uint256 fee) internal {

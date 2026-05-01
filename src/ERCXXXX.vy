@@ -22,7 +22,8 @@ struct TokenData:
     validator_key_hi: bytes32
     validator_key_lo: bytes16
     withdrawal_address: address
-    _padding: bytes32[3]
+    state_fingerprint: bytes32
+    _padding: bytes32[2]
 
 
 next_id: public(uint256)
@@ -210,6 +211,16 @@ def tokenOfOwnerByIndex(owner: address, index: uint256) -> uint256:
     return self.tokens_by_owner[owner][index]
 
 
+## ERC-5646 ##
+
+@external
+@view
+def getStateFingerprint(token_id: uint256) -> bytes32:
+    state_fingerprint: bytes32 = self.token_data[token_id].state_fingerprint
+    assert state_fingerprint != empty(bytes32), "ERC-721: token does not exist"
+    return state_fingerprint
+
+
 ## ERC-XXXX ##
 
 @internal
@@ -240,6 +251,14 @@ def mint(
     self.token_data[token_id].validator_key_hi = validator_key_hi
     self.token_data[token_id].validator_key_lo = validator_key_lo
     self.token_data[token_id].withdrawal_address = withdrawal_address
+    self.token_data[token_id].state_fingerprint = keccak256(
+        abi_encode(
+            keccak256("Minted(bytes32 validatorKeyHi,bytes16 validatorKeyLo,address initialOwner)"),
+            validator_key_hi,
+            validator_key_lo,
+            initial_owner,
+        )
+    )
     return token_id
 
 
@@ -289,14 +308,24 @@ def requestFullWithdrawal(token_id: uint256):
 
 @external
 @payable
-def requestConsolidation(token_id: uint256, targetKeyHi: bytes32, targetKeyLo: bytes16):
+def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
     self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._request_consolidation(
         self.token_data[token_id].validator_key_hi,
         self.token_data[token_id].validator_key_lo,
-        targetKeyHi,
-        targetKeyLo,
+        target_key_hi,
+        target_key_lo,
         value=msg.value,
+    )
+    self.token_data[token_id].state_fingerprint = keccak256(
+        abi_encode(
+            keccak256(
+                "ConsolidationRequested(bytes32 previousFingerprint,bytes32 targetKeyHi,bytes16 targetKeyLo)"
+            ),
+            self.token_data[token_id].state_fingerprint,
+            target_key_hi,
+            target_key_lo,
+        )
     )
 
 
@@ -317,6 +346,12 @@ def requestSwitchToCompounding(token_id: uint256):
 def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
     self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
+    self.token_data[token_id].state_fingerprint = keccak256(
+        abi_encode(
+            keccak256("NativeBalancePulled(bytes32 previousFingerprint)"),
+            self.token_data[token_id].state_fingerprint,
+        )
+    )
 
 
 @external
@@ -324,3 +359,11 @@ def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
 def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
     self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._arbitrary_call(target, data, value=msg.value)
+    self.token_data[token_id].state_fingerprint = keccak256(
+        abi_encode(
+            keccak256("ArbitraryCall(bytes32 previousFingerprint,address target,bytes data)"),
+            self.token_data[token_id].state_fingerprint,
+            target,
+            keccak256(data),
+        )
+    )

@@ -2,8 +2,31 @@
 pragma solidity ^0.8;
 
 import {IERC721Enumerable} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+import {IERC5646} from "src/interfaces/IERC5646.sol";
 
-interface IERCXXXX is IERC721Enumerable {
+interface IERCXXXX is IERC721Enumerable, IERC5646 {
+    struct Minted {
+        bytes32 validatorKeyHi;
+        bytes16 validatorKeyLo;
+        address initialOwner;
+    }
+
+    struct NativeBalancePulled {
+        bytes32 previousFingerprint;
+    }
+
+    struct ConsolidationRequested {
+        bytes32 previousFingerprint;
+        bytes32 targetKeyHi;
+        bytes16 targetKeyLo;
+    }
+
+    struct ArbitraryCall {
+        bytes32 previousFingerprint;
+        address target;
+        bytes data;
+    }
+
     /**
      * @notice Prepare a token intended to wrap the given validator.
      *   @dev The withdrawal address of the token depends only on the parameters of this function, hence it can be determined counterfactually.
