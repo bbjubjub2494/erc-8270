@@ -1,4 +1,5 @@
-# pragma version ~=0.4.3
+# pragma version ==0.4.3
+# pragma evm-version prague
 
 from src.interfaces import IWithdrawalReceiver
 
