@@ -24,8 +24,8 @@ contract ERCXXXXTest is Test {
     uint256 id1;
 
     function setUp() external {
-        bytes memory wrCode = vm.getCode("src/WithdrawalReceiver.vy");
-        dut = IERCXXXX(deployCode("src/ERCXXXX.vy", abi.encode(wrCode)));
+        bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
+        dut = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(wrCode)));
 
         assertEq(dut.totalSupply(), 0);
         vm.expectRevert("ERC-721: invalid index");

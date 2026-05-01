@@ -8,7 +8,7 @@ import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol"
 import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
 
 interface IWithdrawalReceiver {
-	function _pull_native_balance(address destination) external;
+    function _pull_native_balance(address destination) external;
 }
 
 contract ERCXXXXTest is Test {
@@ -23,19 +23,19 @@ contract ERCXXXXTest is Test {
     IWithdrawalReceiver dut;
 
     function setUp() external {
-	    vm.prank(controller);
-        dut = IWithdrawalReceiver(deployCode("src/WithdrawalReceiver.vy"));
+        vm.prank(controller);
+        dut = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
     }
 
     function test_pull_native_balance() public {
-	    vm.deal(address(dut), 1 ether);
-	    vm.prank(user);
-	    vm.expectRevert();
-	    dut._pull_native_balance(user);
+        vm.deal(address(dut), 1 ether);
+        vm.prank(user);
+        vm.expectRevert();
+        dut._pull_native_balance(user);
 
-	    vm.prank(controller);
-	    dut._pull_native_balance(user);
-	    assertEq(address(dut).balance, 0);
-	    assertEq(user.balance, 1 ether);
+        vm.prank(controller);
+        dut._pull_native_balance(user);
+        assertEq(address(dut).balance, 0);
+        assertEq(user.balance, 1 ether);
     }
 }

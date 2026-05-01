@@ -24,13 +24,13 @@ interface IERCXXXX is IERC721Enumerable, IERC5646 {
      *   @return validatorKeyHi The 256 most significant bits of the validator BLS12 public key.
      *   @return validatorKeyLo The 128 least significant bits of the validator BLS12 public key.
      */
-    function validatorKeyOf(uint256 tokenId) external returns (bytes32 validatorKeyHi, bytes16 validatorKeyLo);
+    function validatorKeyOf(uint256 tokenId) external view returns (bytes32 validatorKeyHi, bytes16 validatorKeyLo);
 
     /**
      * @notice Query the withdrawal address associated with this token.
      * 	  @param tokenId The ERC-721 id of the token.
      */
-    function withdrawalAddressOf(uint256 tokenId) external returns (address);
+    function withdrawalAddressOf(uint256 tokenId) external view returns (address);
 
     /**
      * @notice Request an EIP-7002 partial withdrawal of the validator controlled by this token.
