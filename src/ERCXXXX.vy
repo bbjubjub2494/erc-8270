@@ -14,6 +14,10 @@ interface ERC721Receiver:
 
 implements: IERC721
 
+# we cap the token id so that it fits with a 20-byte address in one storage slot.
+# this is purely for ease of reasoning since we will never mint this many.
+MAX_ID: constant(uint256) = 2**96
+
 # we store all the data associated with a token in an array of structs
 # to increase locality and reduce hashing
 # preemptive optimisation for state warming update and hash gas cost increases.
@@ -28,12 +32,12 @@ struct TokenData:
 
 
 next_id: public(uint256)
-tokens_by_owner: HashMap[address, DynArray[uint256, 2**64]]
+tokens_by_owner: HashMap[address, DynArray[uint256, MAX_ID]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
 
 # this puts the unused 0th element at 0xe8 and the first NFT at 0x100
 _padding: bytes32[245]
-token_data: TokenData[2**128]
+token_data: TokenData[MAX_ID]
 
 WITHDRAWAL_RECEIVER_IMPL: immutable(address)
 
