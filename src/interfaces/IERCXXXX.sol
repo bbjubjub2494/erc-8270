@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {IERC721Enumerable} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+import {IERC721Enumerable, IERC721Metadata} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
 import {IERC5646} from "src/interfaces/IERC5646.sol";
 
-interface IERCXXXX is IERC721Enumerable, IERC5646 {
+interface IERCXXXX is IERC721Enumerable, IERC721Metadata, IERC5646 {
     /**
      * @notice Prepare a token intended to wrap the given validator.
      *   @dev The withdrawal address of the token depends only on the parameters of this function, hence it can be determined counterfactually.
