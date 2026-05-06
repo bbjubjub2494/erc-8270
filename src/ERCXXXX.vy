@@ -39,6 +39,9 @@ approval_for_all: HashMap[address, HashMap[address, bool]]
 _padding: bytes32[245]
 token_data: TokenData[MAX_ID]
 
+WITHDRAWAL_REQUESTS: constant(address) = 0x00000961Ef480Eb55e80D19ad83579A64c007002
+CONSOLIDATION_REQUESTS: constant(address) = 0x0000BBdDc7CE488642fb579F8B00f3a590007251
+
 WITHDRAWAL_RECEIVER_IMPL: immutable(address)
 
 
@@ -285,10 +288,13 @@ def withdrawalAddressOf(token_id: uint256) -> address:
 def requestPartialWithdrawal(token_id: uint256, amount: uint256):
     self.check_allowed(token_id, self._owner(token_id))
     assert amount != 0, "ERC-XXXX: zero partial withdrawal amount"
-    extcall self.withdrawal_receiver(token_id)._request_withdrawal(
-        self.token_data[token_id].validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
-        convert(amount // 1_000_000_000, uint64),
+    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
+        WITHDRAWAL_REQUESTS,
+        concat(
+            self.token_data[token_id].validator_key_hi,
+            self.token_data[token_id].validator_key_lo,
+            convert(convert(amount // 1_000_000_000, uint64), bytes8),
+        ),
         value=msg.value,
     )
 
@@ -297,10 +303,13 @@ def requestPartialWithdrawal(token_id: uint256, amount: uint256):
 @payable
 def requestFullWithdrawal(token_id: uint256):
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id)._request_withdrawal(
-        self.token_data[token_id].validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
-        0,
+    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
+        WITHDRAWAL_REQUESTS,
+        concat(
+            self.token_data[token_id].validator_key_hi,
+            self.token_data[token_id].validator_key_lo,
+            empty(bytes8),
+        ),
         value=msg.value,
     )
 
@@ -309,11 +318,14 @@ def requestFullWithdrawal(token_id: uint256):
 @payable
 def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id)._request_consolidation(
-        self.token_data[token_id].validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
-        target_key_hi,
-        target_key_lo,
+    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
+        CONSOLIDATION_REQUESTS,
+        concat(
+            self.token_data[token_id].validator_key_hi,
+            self.token_data[token_id].validator_key_lo,
+            target_key_hi,
+            target_key_lo,
+        ),
         value=msg.value,
     )
     self.token_data[token_id].state_fingerprint = keccak256(
@@ -332,11 +344,14 @@ def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_l
 @payable
 def requestSwitchToCompounding(token_id: uint256):
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id)._request_consolidation(
-        self.token_data[token_id].validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
-        self.token_data[token_id].validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
+    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
+        CONSOLIDATION_REQUESTS,
+        concat(
+            self.token_data[token_id].validator_key_hi,
+            self.token_data[token_id].validator_key_lo,
+            self.token_data[token_id].validator_key_hi,
+            self.token_data[token_id].validator_key_lo,
+        ),
         value=msg.value,
     )
 
