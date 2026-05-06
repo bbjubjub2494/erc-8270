@@ -26,7 +26,6 @@ This project implements an ERC-721 NFT standard for managing Ethereum staking va
 
 **`src/ERCXXXX.vy`** — Main ERC-721 implementation. Implements ERC-721, ERC-721 Enumerable, ERC-5646 (state fingerprinting), and the custom ERC-XXXX standard. Key design choices:
 - BLS12 public keys are split into a 256-bit `hi` and 128-bit `lo` component to fit in `TokenData` structs.
-- Validator existence is checked by testing whether `key_hi != 0`.
 - Owner/index are packed into a single `uint256` in storage (address in lower 160 bits, index in upper 96 bits) — see `pack_owner` / `unpack_owner`.
 - There is 0xe8 bytes of padding before the first `TokenData` entry to align storage at a clean boundary.
 - Each token gets a deterministic withdrawal receiver deployed via `create_minimal_proxy_to()` using CREATE2, with salt `keccak256(key_hi, key_lo, initial_owner)`.
@@ -37,7 +36,7 @@ This project implements an ERC-721 NFT standard for managing Ethereum staking va
 
 ### State fingerprinting (ERC-5646)
 
-Token state is hashed with EIP-712-style encoding. The fingerprint changes on: mint, native balance pull, consolidation request, and arbitrary call. This allows off-chain systems to detect state mutations.
+Token state is hashed with EIP-712-style encoding. The fingerprint changes on: mint, native balance pull, consolidation request, and arbitrary call. This allows smart contracts to detect unexpected state mutations.
 
 ### EIP-7002 / EIP-7251 integration
 
