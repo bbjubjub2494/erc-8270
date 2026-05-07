@@ -31,10 +31,12 @@ def beacon_chain_request(target: address, data: Bytes[96]):
 @external
 @payable
 def _pull_native_balance(destination: address):
+    assert msg.sender == CONTROLLER
     raw_call(destination, b"", value=self.balance)
 
 
 @external
 @payable
 def _arbitrary_call(target: address, data: Bytes[65536] = b""):
+    assert msg.sender == CONTROLLER
     raw_call(target, data, value=msg.value)
