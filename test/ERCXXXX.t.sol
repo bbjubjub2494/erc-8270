@@ -34,6 +34,8 @@ contract ERCXXXXTest is Test {
         vm.expectRevert("ERC-721: invalid index");
         dut.tokenOfOwnerByIndex(user1, 0);
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(address(0), user1, 1);
         vm.prank(user1);
         id1 = dut.mint(validatorKey1Hi, validatorKey1Lo, user1);
     }
@@ -66,10 +68,14 @@ contract ERCXXXXTest is Test {
         assertEq(lo, validatorKey1Lo);
 
         // different validator, same user
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(address(0), user1, 2);
         uint256 id2 = dut.mint(validatorKey2Hi, validatorKey2Lo, user1);
         assertEq(dut.ownerOf(id2), user1);
 
         // different user, same validator
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(address(0), user2, 3);
         uint256 id3 = dut.mint(validatorKey1Hi, validatorKey1Lo, user2);
         assertEq(dut.ownerOf(id3), user2);
     }
@@ -97,16 +103,22 @@ contract ERCXXXXTest is Test {
     function test_transfer() external {
         uint256 snapshot = vm.snapshotState();
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user2, id1);
         vm.prank(user1);
         dut.transferFrom(user1, user2, id1);
         assertEq(dut.ownerOf(id1), user2);
 
         vm.revertToState(snapshot);
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Approval(user1, user2, id1);
         vm.prank(user1);
         dut.approve(user2, id1);
         assertEq(dut.getApproved(id1), user2);
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user3, id1);
         vm.prank(user2);
         dut.transferFrom(user1, user3, id1);
         assertEq(dut.ownerOf(id1), user3);
@@ -114,15 +126,21 @@ contract ERCXXXXTest is Test {
 
         vm.revertToState(snapshot);
 
+        vm.expectEmit(address(dut));
+        emit IERC721.ApprovalForAll(user1, user2, true);
         vm.prank(user1);
         dut.setApprovalForAll(user2, true);
         assertTrue(dut.isApprovedForAll(user1, user2));
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user3, id1);
         vm.prank(user2);
         dut.safeTransferFrom(user1, user3, id1);
         assertEq(dut.ownerOf(id1), user3);
         assertTrue(dut.isApprovedForAll(user1, user2));
 
+        vm.expectEmit(address(dut));
+        emit IERC721.ApprovalForAll(user1, user2, false);
         vm.prank(user1);
         dut.setApprovalForAll(user2, false);
         assertFalse(dut.isApprovedForAll(user1, user2));
@@ -130,6 +148,8 @@ contract ERCXXXXTest is Test {
 
     function test_safe_transfer_1() public {
         // not a contract = no call
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user2, id1);
         vm.prank(user1);
         vm.expectCall(user2, "", 0);
         dut.safeTransferFrom(user1, user2, id1);
@@ -139,6 +159,8 @@ contract ERCXXXXTest is Test {
         vm.etch(user2, "code");
         vm.expectCall(user2, abi.encodeCall(IERC721TokenReceiver.onERC721Received, (user1, user1, id1, "")));
         vm.mockCall(user2, bytes(""), abi.encode(IERC721TokenReceiver.onERC721Received.selector));
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user2, id1);
         vm.prank(user1);
         dut.safeTransferFrom(user1, user2, id1);
     }
@@ -156,8 +178,12 @@ contract ERCXXXXTest is Test {
         vm.etch(user2, "code");
         vm.expectCall(user2, abi.encodeCall(IERC721TokenReceiver.onERC721Received, (user3, user1, id1, "data")));
         vm.mockCall(user2, bytes(""), abi.encode(IERC721TokenReceiver.onERC721Received.selector));
+        vm.expectEmit(address(dut));
+        emit IERC721.Approval(user1, user3, id1);
         vm.prank(user1);
         dut.approve(user3, id1);
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user2, id1);
         vm.prank(user3);
         dut.safeTransferFrom(user1, user2, id1, "data");
     }
@@ -213,28 +239,38 @@ contract ERCXXXXTest is Test {
         _checkTokensOfOwnerByIndex(user1, _a(id1));
 
         // different validator, same user
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(address(0), user1, 2);
         uint256 id2 = dut.mint(validatorKey2Hi, validatorKey2Lo, user1);
         _checkTokensByIndex(_a(id1, id2));
         _checkTokensOfOwnerByIndex(user1, _a(id1, id2));
 
         // different user, same validator
         assertEq(dut.balanceOf(user2), 0);
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(address(0), user2, 3);
         uint256 id3 = dut.mint(validatorKey1Hi, validatorKey1Lo, user2);
         _checkTokensByIndex(_a(id1, id2, id3));
         _checkTokensOfOwnerByIndex(user2, _a(id3));
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user1, user3, id1);
         vm.prank(user1);
         dut.transferFrom(user1, user3, id1);
         _checkTokensByIndex(_a(id1, id2, id3));
         _checkTokensOfOwnerByIndex(user1, _a(id2));
         _checkTokensOfOwnerByIndex(user3, _a(id1));
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user2, user3, id3);
         vm.prank(user2);
         dut.transferFrom(user2, user3, id3);
         _checkTokensByIndex(_a(id1, id2, id3));
         _checkTokensOfOwnerByIndex(user2, _a());
         _checkTokensOfOwnerByIndex(user3, _a(id1, id3));
 
+        vm.expectEmit(address(dut));
+        emit IERC721.Transfer(user3, user2, id3);
         vm.prank(user3);
         dut.transferFrom(user3, user2, id3);
         _checkTokensOfOwnerByIndex(user3, _a(id1));

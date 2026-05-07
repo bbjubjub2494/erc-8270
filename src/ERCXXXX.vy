@@ -139,6 +139,7 @@ def approve(approved: address, token_id: uint256):
 @external
 def setApprovalForAll(operator: address, approved: bool):
     self.approval_for_all[msg.sender][operator] = approved
+    log IERC721.ApprovalForAll(owner=msg.sender, operator=operator, approved=approved)
 
 
 @internal
