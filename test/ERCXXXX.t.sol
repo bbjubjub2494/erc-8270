@@ -279,6 +279,22 @@ contract ERCXXXXTest is Test {
 
     // ERC-5646 //
 
+    struct NativeBalancePulled {
+        bytes32 previousFingerprint;
+    }
+
+    struct ConsolidationRequested {
+        bytes32 previousFingerprint;
+        bytes32 targetKeyHi;
+        bytes16 targetKeyLo;
+    }
+
+    struct ArbitraryCall {
+        bytes32 previousFingerprint;
+        address target;
+        bytes data;
+    }
+
     function test_state_fingerprint() public {
         uint256 fee = 1 wei;
         _mockQueryFee(WITHDRAWAL_REQUESTS, fee);
@@ -286,16 +302,13 @@ contract ERCXXXXTest is Test {
         bytes32 validatorKey2Hi = 0x8111111111111111111111111111111111111111111111111111111111111111;
         bytes16 validatorKey2Lo = 0x22222222222222222222222222222222;
 
-        bytes32 expected = vm.eip712HashStruct(
-            "Minted(bytes32 validatorKeyHi, bytes16 validatorKeyLo, address initialOwner)",
-            abi.encode(IERCXXXX.Minted(validatorKey1Hi, validatorKey1Lo, user1))
-        );
+        bytes32 expected = vm.eip712HashStruct("Minted()", "");
         assertEq(dut.getStateFingerprint(id1), expected);
 
         vm.prank(user1);
         dut.pullNativeBalance(id1, user1);
         expected = vm.eip712HashStruct(
-            "NativeBalancePulled(bytes32 previousFingerprint)", abi.encode(IERCXXXX.NativeBalancePulled(expected))
+            "NativeBalancePulled(bytes32 previousFingerprint)", abi.encode(NativeBalancePulled(expected))
         );
         assertEq(dut.getStateFingerprint(id1), expected);
 
@@ -318,7 +331,7 @@ contract ERCXXXXTest is Test {
         dut.requestConsolidation{value: fee}(id1, validatorKey2Hi, validatorKey2Lo);
         expected = vm.eip712HashStruct(
             "ConsolidationRequested(bytes32 previousFingerprint, bytes32 targetKeyHi, bytes16 targetKeyLo)",
-            abi.encode(IERCXXXX.ConsolidationRequested(expected, validatorKey2Hi, validatorKey2Lo))
+            abi.encode(ConsolidationRequested(expected, validatorKey2Hi, validatorKey2Lo))
         );
         assertEq(dut.getStateFingerprint(id1), expected);
 
@@ -332,7 +345,7 @@ contract ERCXXXXTest is Test {
         dut.arbitraryCall(id1, target, "data");
         expected = vm.eip712HashStruct(
             "ArbitraryCall(bytes32 previousFingerprint, address target, bytes data)",
-            abi.encode(IERCXXXX.ArbitraryCall(expected, target, "data"))
+            abi.encode(ArbitraryCall(expected, target, "data"))
         );
         assertEq(dut.getStateFingerprint(id1), expected);
     }

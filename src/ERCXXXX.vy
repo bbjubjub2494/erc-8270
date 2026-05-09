@@ -257,14 +257,7 @@ def mint(
     self.token_data[token_id].validator_key_hi = validator_key_hi
     self.token_data[token_id].validator_key_lo = validator_key_lo
     self.token_data[token_id].withdrawal_address = withdrawal_address
-    self.token_data[token_id].state_fingerprint = keccak256(
-        abi_encode(
-            keccak256("Minted(bytes32 validatorKeyHi,bytes16 validatorKeyLo,address initialOwner)"),
-            validator_key_hi,
-            validator_key_lo,
-            initial_owner,
-        )
-    )
+    self.token_data[token_id].state_fingerprint = keccak256(keccak256("Minted()"))
     return token_id
 
 
