@@ -5,12 +5,11 @@ def beacon_chain_request(target: address, data: Bytes[96]):
 
 
 @external
-@payable
 def _pull_native_balance(destination: address):
     ...
 
 
 @external
 @payable
-def _arbitrary_call(target: address, data: Bytes[65536] = b""):
+def _arbitrary_call(target: address, data: Bytes[65536]):
     ...
