@@ -6,6 +6,8 @@ from src.interfaces import IWithdrawalReceiver
 
 from ethereum.ercs import IERC721
 
+from . import format_helpers as fmt
+
 
 interface ERC721Receiver:
     def onERC721Received(
@@ -86,19 +88,6 @@ def supportsInterface(interface_id: bytes4) -> bool:
 
 ### ERC-721 Metadata ###
 
-@internal
-@pure
-def to_hex_digit(nibble: uint256) -> String[1]:
-    alphabet: String[16] = "0123456789abcdef"
-    return slice(alphabet, nibble, 1)
-
-
-@internal
-@view
-def to_hex(byte: uint256) -> String[2]:
-    byte = byte % 256
-    return concat(self.to_hex_digit(byte // 16), self.to_hex_digit(byte % 16))
-
 
 @external
 @view
@@ -116,102 +105,28 @@ def symbol() -> String[7]:
 @view
 def tokenURI(token_id: uint256) -> String[65536]:
     self.check_exists(token_id)
-    validator_key_hi: uint256 = convert(self.token_data[token_id].validator_key_hi, uint256)
-    validator_key_lo: uint256 = convert(self.token_data[token_id].validator_key_lo, uint256)
-    withdrawal_address: uint256 = convert(self.token_data[token_id].withdrawal_address, uint256)
-    validatorKeyStr: String[98] = concat(
-        "0x",
-        self.to_hex(validator_key_hi >> 248),
-        self.to_hex(validator_key_hi >> 240),
-        self.to_hex(validator_key_hi >> 232),
-        self.to_hex(validator_key_hi >> 224),
-        self.to_hex(validator_key_hi >> 216),
-        self.to_hex(validator_key_hi >> 208),
-        self.to_hex(validator_key_hi >> 200),
-        self.to_hex(validator_key_hi >> 192),
-        self.to_hex(validator_key_hi >> 184),
-        self.to_hex(validator_key_hi >> 176),
-        self.to_hex(validator_key_hi >> 168),
-        self.to_hex(validator_key_hi >> 160),
-        self.to_hex(validator_key_hi >> 152),
-        self.to_hex(validator_key_hi >> 144),
-        self.to_hex(validator_key_hi >> 136),
-        self.to_hex(validator_key_hi >> 128),
-        self.to_hex(validator_key_hi >> 120),
-        self.to_hex(validator_key_hi >> 112),
-        self.to_hex(validator_key_hi >> 104),
-        self.to_hex(validator_key_hi >> 96),
-        self.to_hex(validator_key_hi >> 88),
-        self.to_hex(validator_key_hi >> 80),
-        self.to_hex(validator_key_hi >> 72),
-        self.to_hex(validator_key_hi >> 64),
-        self.to_hex(validator_key_hi >> 56),
-        self.to_hex(validator_key_hi >> 48),
-        self.to_hex(validator_key_hi >> 40),
-        self.to_hex(validator_key_hi >> 32),
-        self.to_hex(validator_key_hi >> 24),
-        self.to_hex(validator_key_hi >> 16),
-        self.to_hex(validator_key_hi >> 8),
-        self.to_hex(validator_key_hi),
-        self.to_hex(validator_key_lo >> 120),
-        self.to_hex(validator_key_lo >> 112),
-        self.to_hex(validator_key_lo >> 104),
-        self.to_hex(validator_key_lo >> 96),
-        self.to_hex(validator_key_lo >> 88),
-        self.to_hex(validator_key_lo >> 80),
-        self.to_hex(validator_key_lo >> 72),
-        self.to_hex(validator_key_lo >> 64),
-        self.to_hex(validator_key_lo >> 56),
-        self.to_hex(validator_key_lo >> 48),
-        self.to_hex(validator_key_lo >> 40),
-        self.to_hex(validator_key_lo >> 32),
-        self.to_hex(validator_key_lo >> 24),
-        self.to_hex(validator_key_lo >> 16),
-        self.to_hex(validator_key_lo >> 8),
-        self.to_hex(validator_key_lo),
-    )
-    withdrawalAddressStr: String[98] = concat(
-        "0x",
-        self.to_hex(withdrawal_address >> 152),
-        self.to_hex(withdrawal_address >> 144),
-        self.to_hex(withdrawal_address >> 136),
-        self.to_hex(withdrawal_address >> 128),
-        self.to_hex(withdrawal_address >> 120),
-        self.to_hex(withdrawal_address >> 112),
-        self.to_hex(withdrawal_address >> 104),
-        self.to_hex(withdrawal_address >> 96),
-        self.to_hex(withdrawal_address >> 88),
-        self.to_hex(withdrawal_address >> 80),
-        self.to_hex(withdrawal_address >> 72),
-        self.to_hex(withdrawal_address >> 64),
-        self.to_hex(withdrawal_address >> 56),
-        self.to_hex(withdrawal_address >> 48),
-        self.to_hex(withdrawal_address >> 40),
-        self.to_hex(withdrawal_address >> 32),
-        self.to_hex(withdrawal_address >> 24),
-        self.to_hex(withdrawal_address >> 16),
-        self.to_hex(withdrawal_address >> 8),
-        self.to_hex(withdrawal_address),
-    )
     return concat(
         """data:application/json,{
     "name": "ERC-XXXX Token #"""
         ,
         uint2str(token_id),
-        '''",
+        '",',
+        """
     "description": "TODO",
     "image": "TODO",
     "attributes": [{
         "trait_type": "Validator Key",
-        "value": "'''
+        "value": "0x"""
         ,
-        validatorKeyStr,
-        '''"
+        fmt.bytes32_to_hex(self.token_data[token_id].validator_key_hi),
+        fmt.bytes16_to_hex(self.token_data[token_id].validator_key_lo),
+        '"',
+        """
     }, {
         "trait_type": "Withdrawal Address",
-        "value": "'''
+        "value": "0x"""
         ,
-        withdrawalAddressStr,
+        fmt.address_to_hex(self.token_data[token_id].withdrawal_address),
         '"}]}',
     )
 
