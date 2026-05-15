@@ -35,7 +35,7 @@ next_id: public(uint256)
 tokens_by_owner: HashMap[address, DynArray[uint256, MAX_ID]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
 
-# this puts the unused 0th element at 0xe8 and the first NFT at 0x100
+# this puts the unused 0th element at 0xf8 and the first NFT at 0x100
 _padding: bytes32[245]
 token_data: TokenData[MAX_ID]
 
@@ -68,11 +68,12 @@ def __init__(withdrawal_receiver_code: Bytes[49152]):
 
 ### ERC-165 ###
 
-SUPPORTED_INTERFACES: constant(bytes4[3]) = [
+SUPPORTED_INTERFACES: constant(bytes4[5]) = [
     0x01ffc9a7,  # ERC-165
     0x80ac58cd,  # ERC-721
     0x780e9d63,  # ERC-721 enumeration
-    # TODO ERC-5646, ERC-XXXX
+    0x5b5e139f,  # ERC-721 metadata
+    0xf5112315,  # ERC-5646
 ]
 
 
@@ -80,6 +81,138 @@ SUPPORTED_INTERFACES: constant(bytes4[3]) = [
 @view
 def supportsInterface(interface_id: bytes4) -> bool:
     return interface_id in SUPPORTED_INTERFACES
+
+
+### ERC-721 Metadata ###
+
+@internal
+@pure
+def to_hex_digit(nibble: uint256) -> String[1]:
+    alphabet: String[16] = "0123456789abcdef"
+    return slice(alphabet, nibble, 1)
+
+
+@internal
+@view
+def to_hex(byte: uint256) -> String[2]:
+    byte = byte % 256
+    return concat(self.to_hex_digit(byte // 16), self.to_hex_digit(byte % 16))
+
+
+@external
+@view
+def name() -> String[29]:
+    return "ERC-XXXX Wrapped Beacon Stake"
+
+
+@external
+@view
+def symbol() -> String[7]:
+    return "ERCXXXX"
+
+
+@external
+@view
+def tokenURI(token_id: uint256) -> String[65536]:
+    self.check_exists(token_id)
+    validator_key_hi: uint256 = convert(self.token_data[token_id].validator_key_hi, uint256)
+    validator_key_lo: uint256 = convert(self.token_data[token_id].validator_key_lo, uint256)
+    withdrawal_address: uint256 = convert(self.token_data[token_id].withdrawal_address, uint256)
+    validatorKeyStr: String[98] = concat(
+        "0x",
+        self.to_hex(validator_key_hi >> 248),
+        self.to_hex(validator_key_hi >> 240),
+        self.to_hex(validator_key_hi >> 232),
+        self.to_hex(validator_key_hi >> 224),
+        self.to_hex(validator_key_hi >> 216),
+        self.to_hex(validator_key_hi >> 208),
+        self.to_hex(validator_key_hi >> 200),
+        self.to_hex(validator_key_hi >> 192),
+        self.to_hex(validator_key_hi >> 184),
+        self.to_hex(validator_key_hi >> 176),
+        self.to_hex(validator_key_hi >> 168),
+        self.to_hex(validator_key_hi >> 160),
+        self.to_hex(validator_key_hi >> 152),
+        self.to_hex(validator_key_hi >> 144),
+        self.to_hex(validator_key_hi >> 136),
+        self.to_hex(validator_key_hi >> 128),
+        self.to_hex(validator_key_hi >> 120),
+        self.to_hex(validator_key_hi >> 112),
+        self.to_hex(validator_key_hi >> 104),
+        self.to_hex(validator_key_hi >> 96),
+        self.to_hex(validator_key_hi >> 88),
+        self.to_hex(validator_key_hi >> 80),
+        self.to_hex(validator_key_hi >> 72),
+        self.to_hex(validator_key_hi >> 64),
+        self.to_hex(validator_key_hi >> 56),
+        self.to_hex(validator_key_hi >> 48),
+        self.to_hex(validator_key_hi >> 40),
+        self.to_hex(validator_key_hi >> 32),
+        self.to_hex(validator_key_hi >> 24),
+        self.to_hex(validator_key_hi >> 16),
+        self.to_hex(validator_key_hi >> 8),
+        self.to_hex(validator_key_hi),
+        self.to_hex(validator_key_lo >> 120),
+        self.to_hex(validator_key_lo >> 112),
+        self.to_hex(validator_key_lo >> 104),
+        self.to_hex(validator_key_lo >> 96),
+        self.to_hex(validator_key_lo >> 88),
+        self.to_hex(validator_key_lo >> 80),
+        self.to_hex(validator_key_lo >> 72),
+        self.to_hex(validator_key_lo >> 64),
+        self.to_hex(validator_key_lo >> 56),
+        self.to_hex(validator_key_lo >> 48),
+        self.to_hex(validator_key_lo >> 40),
+        self.to_hex(validator_key_lo >> 32),
+        self.to_hex(validator_key_lo >> 24),
+        self.to_hex(validator_key_lo >> 16),
+        self.to_hex(validator_key_lo >> 8),
+        self.to_hex(validator_key_lo),
+    )
+    withdrawalAddressStr: String[98] = concat(
+        "0x",
+        self.to_hex(withdrawal_address >> 152),
+        self.to_hex(withdrawal_address >> 144),
+        self.to_hex(withdrawal_address >> 136),
+        self.to_hex(withdrawal_address >> 128),
+        self.to_hex(withdrawal_address >> 120),
+        self.to_hex(withdrawal_address >> 112),
+        self.to_hex(withdrawal_address >> 104),
+        self.to_hex(withdrawal_address >> 96),
+        self.to_hex(withdrawal_address >> 88),
+        self.to_hex(withdrawal_address >> 80),
+        self.to_hex(withdrawal_address >> 72),
+        self.to_hex(withdrawal_address >> 64),
+        self.to_hex(withdrawal_address >> 56),
+        self.to_hex(withdrawal_address >> 48),
+        self.to_hex(withdrawal_address >> 40),
+        self.to_hex(withdrawal_address >> 32),
+        self.to_hex(withdrawal_address >> 24),
+        self.to_hex(withdrawal_address >> 16),
+        self.to_hex(withdrawal_address >> 8),
+        self.to_hex(withdrawal_address),
+    )
+    return concat(
+        """data:application/json,{
+    "name": "ERC-XXXX Token #"""
+        ,
+        uint2str(token_id),
+        '''",
+    "description": "TODO",
+    "image": "TODO",
+    "attributes": [{
+        "trait_type": "Validator Key",
+        "value": "'''
+        ,
+        validatorKeyStr,
+        '''"
+    }, {
+        "trait_type": "Withdrawal Address",
+        "value": "'''
+        ,
+        withdrawalAddressStr,
+        '"}]}',
+    )
 
 
 ## ERC-721 ##
@@ -100,10 +233,9 @@ def check_exists(token_id: uint256):
 
 @internal
 @view
-def check_allowed(token_id: uint256, owner: address) -> address:
+def check_allowed(token_id: uint256, owner: address):
     if msg.sender != owner and msg.sender != self.token_data[token_id].approved:
         assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or approved"
-    return owner
 
 
 @external
@@ -134,9 +266,10 @@ def isApprovedForAll(owner: address, operator: address) -> bool:
 @external
 @payable
 def approve(approved: address, token_id: uint256):
-    self.check_allowed(token_id, self._owner(token_id))
+    owner: address = self._owner(token_id)
+    self.check_allowed(token_id, owner)
     self.token_data[token_id].approved = approved
-    log IERC721.Approval(owner=msg.sender, approved=approved, token_id=token_id)
+    log IERC721.Approval(owner=owner, approved=approved, token_id=token_id)
 
 
 @external
@@ -153,10 +286,12 @@ def _transfer(expected_owner: address, receiver: address, token_id: uint256):
     assert owner == expected_owner, "ERC-721: wrong owner"
     self.check_allowed(token_id, owner)
     assert receiver != empty(address), "ERC-721: transfer to zero"
-    self.tokens_by_owner[owner][index] = (
-        self.tokens_by_owner[owner][len(self.tokens_by_owner[owner]) - 1]
-    )
+
+    last_id: uint256 = self.tokens_by_owner[owner][len(self.tokens_by_owner[owner]) - 1]
+    self.tokens_by_owner[owner][index] = last_id
     self.tokens_by_owner[owner].pop()
+    self.token_data[last_id].index_and_owner = self._pack(index, owner)
+
     index = convert(len(self.tokens_by_owner[receiver]), uint96)
     self.tokens_by_owner[receiver].append(token_id)
     self.token_data[token_id].index_and_owner = self._pack(index, receiver)
@@ -293,7 +428,7 @@ def requestPartialWithdrawal(token_id: uint256, amount: uint256):
         concat(
             self.token_data[token_id].validator_key_hi,
             self.token_data[token_id].validator_key_lo,
-            convert(convert(amount // 1_000_000_000, uint64), bytes8),
+            convert(convert((amount + 999_999_999) // 1_000_000_000, uint64), bytes8),
         ),
         value=msg.value,
     )
@@ -318,16 +453,6 @@ def requestFullWithdrawal(token_id: uint256):
 @payable
 def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
-        CONSOLIDATION_REQUESTS,
-        concat(
-            self.token_data[token_id].validator_key_hi,
-            self.token_data[token_id].validator_key_lo,
-            target_key_hi,
-            target_key_lo,
-        ),
-        value=msg.value,
-    )
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
             keccak256(
@@ -337,6 +462,16 @@ def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_l
             target_key_hi,
             target_key_lo,
         )
+    )
+    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
+        CONSOLIDATION_REQUESTS,
+        concat(
+            self.token_data[token_id].validator_key_hi,
+            self.token_data[token_id].validator_key_lo,
+            target_key_hi,
+            target_key_lo,
+        ),
+        value=msg.value,
     )
 
 
@@ -358,21 +493,22 @@ def requestSwitchToCompounding(token_id: uint256):
 
 @external
 def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
+    # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
             keccak256("NativeBalancePulled(bytes32 previousFingerprint)"),
             self.token_data[token_id].state_fingerprint,
         )
     )
+    extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
 
 
 @external
 @payable
 def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
+    # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id)._arbitrary_call(target, data, value=msg.value)
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
             keccak256("ArbitraryCall(bytes32 previousFingerprint,address target,bytes data)"),
@@ -381,3 +517,4 @@ def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
             keccak256(data),
         )
     )
+    extcall self.withdrawal_receiver(token_id)._arbitrary_call(target, data, value=msg.value)

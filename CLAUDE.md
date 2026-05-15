@@ -27,7 +27,7 @@ This project implements an ERC-721 NFT standard for managing Ethereum staking va
 **`src/ERCXXXX.vy`** — Main ERC-721 implementation. Implements ERC-721, ERC-721 Enumerable, ERC-5646 (state fingerprinting), and the custom ERC-XXXX standard. Key design choices:
 - BLS12 public keys are split into a 256-bit `hi` and 128-bit `lo` component to fit in `TokenData` structs.
 - Owner/index are packed into a single `uint256` in storage (address in lower 160 bits, index in upper 96 bits) — see `pack_owner` / `unpack_owner`.
-- There is 0xe8 bytes of padding before the first `TokenData` entry to align storage at a clean boundary.
+- There is 0xf8 bytes of padding before the first `TokenData` entry to align storage at a clean boundary.
 - Each token gets a deterministic withdrawal receiver deployed via `create_minimal_proxy_to()` using CREATE2, with salt `keccak256(key_hi, key_lo, initial_owner)`.
 
 **`src/WithdrawalReceiver.vy`** — Minimal proxy contract per validator. Receives ETH from withdrawals; exposes EIP-7002 partial/full withdrawal requests and EIP-7251 consolidation/compounding switch requests to the withdrawal address. Also forwards arbitrary calls from the withdrawal address.

@@ -2,12 +2,21 @@
 pragma solidity ^0.8;
 
 import {Test} from "dependencies/forge-std-1.16.0/src/Test.sol";
+import {stdJson} from "dependencies/forge-std-1.16.0/src/StdJson.sol";
 
 import {IERC20} from "dependencies/forge-std-1.16.0/src/interfaces/IERC20.sol";
 import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
-import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+import {
+    IERC721,
+    IERC721Enumerable,
+    IERC721Metadata,
+    IERC721TokenReceiver
+} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
 
+import {IERC5646} from "src/interfaces/IERC5646.sol";
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+
+using stdJson for string;
 
 contract ERCXXXXTest is Test {
     address constant WITHDRAWAL_REQUESTS = 0x00000961Ef480Eb55e80D19ad83579A64c007002; // EIP-7002 contract
@@ -24,8 +33,8 @@ contract ERCXXXXTest is Test {
     uint256 id1;
 
     function setUp() external {
-        bytes memory wrCode = vm.getCode("src/WithdrawalReceiver.vy");
-        dut = IERCXXXX(deployCode("src/ERCXXXX.vy", abi.encode(wrCode)));
+        bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
+        dut = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(wrCode)));
 
         assertEq(dut.totalSupply(), 0);
         vm.expectRevert("ERC-721: invalid index");
@@ -52,9 +61,44 @@ contract ERCXXXXTest is Test {
     // ERC-165 //
 
     function test_supports_interface() external view {
-        assertTrue(dut.supportsInterface(type(IERC721).interfaceId));
         assertTrue(dut.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC721).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC721Enumerable).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC721Metadata).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC5646).interfaceId));
         assertFalse(dut.supportsInterface(type(IERC20).interfaceId));
+    }
+
+    // ERC-721 Metadata //
+
+    function test_metadata() external view {
+        assertEq(dut.name(), "ERC-XXXX Wrapped Beacon Stake");
+        assertEq(dut.symbol(), "ERCXXXX");
+    }
+
+    function test_token_uri_reverts_nonexistent() external {
+        vm.expectRevert("ERC-721: token does not exist");
+        dut.tokenURI(999);
+        string memory buf = dut.tokenURI(id1);
+        string memory expectedPrefix = "data:application/json,";
+        uint256 length;
+        assembly {
+            length := mload(buf)
+            mstore(buf, mload(expectedPrefix)) // truncation
+        }
+        assertEq(buf, expectedPrefix);
+
+        assembly {
+            // cut out uri prefix
+            let jsonlength := sub(length, mload(expectedPrefix))
+            mcopy(add(buf, 32), add(add(buf, 32), mload(expectedPrefix)), jsonlength)
+            mstore(buf, jsonlength)
+        }
+        assertEq(buf.readString(".name"), "ERC-XXXX Token #1");
+        assertEq(buf.readString(".attributes[0].trait_type"), "Validator Key");
+        assertEq(vm.parseBytes(buf.readString(".attributes[0].value")), bytes.concat(validatorKey1Hi, validatorKey1Lo));
+        assertEq(buf.readString(".attributes[1].trait_type"), "Withdrawal Address");
+        assertEq(vm.parseBytes(buf.readString(".attributes[1].value")), abi.encodePacked(dut.withdrawalAddressOf(id1)));
     }
 
     // ERC-721 //
@@ -414,6 +458,14 @@ contract ERCXXXXTest is Test {
         dut.requestPartialWithdrawal(id1, uint256(amount) * 1e9);
     }
 
+    function test_request_partial_withdrawal_reject_zero() public {
+        uint256 fee = 1 wei;
+
+        hoax(user1, 1 ether);
+        vm.expectRevert("ERC-XXXX: zero partial withdrawal amount");
+        dut.requestPartialWithdrawal{value: fee}(id1, 0);
+    }
+
     function test_request_switch_to_compounding_withdrawal() public {
         uint256 fee = 1 wei;
 
@@ -482,5 +534,39 @@ contract ERCXXXXTest is Test {
         vm.expectCall(target, value, data);
         hoax(user1, value);
         dut.arbitraryCall{value: value}(id1, target, data);
+    }
+
+    // Regression tests //
+    function test_stale_index_after_transfer() external {
+        bytes32 validatorKey2Hi = 0x8111111111111111111111111111111111111111111111111111111111111111;
+        bytes16 validatorKey2Lo = 0x22222222222222222222222222222222;
+        uint256 id2 = dut.mint(validatorKey2Hi, validatorKey2Lo, user1); // user1 = [id1, id2]
+
+        vm.prank(user1);
+        dut.transferFrom(user1, user2, id1); // id2 moves to index 0; its stored index is still 1
+
+        vm.prank(user1);
+        // reverts if stored index is stale
+        dut.transferFrom(user1, user2, id2);
+    }
+
+    function test_request_partial_withdrawal_round_up(uint64 amount) public {
+        vm.assume(amount != 0 && amount < 1 gwei);
+        uint256 fee = 1 wei;
+
+        _mockWithdrawalRequest(fee, 1); // rounding to zero can cause a full withdrawal
+        hoax(user1, 1 ether);
+        dut.requestPartialWithdrawal{value: fee}(id1, amount);
+    }
+
+    function test_approve_by_operator() public {
+        vm.prank(user1);
+        dut.setApprovalForAll(user2, true);
+
+        // the owner field should be the owner, not the caller
+        vm.expectEmit();
+        emit IERC721.Approval(user1, user3, id1);
+        vm.prank(user2);
+        dut.approve(user3, id1);
     }
 }
