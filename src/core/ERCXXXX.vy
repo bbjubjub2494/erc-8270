@@ -336,7 +336,7 @@ def withdrawalAddressOf(token_id: uint256) -> address:
 
 @external
 @payable
-def requestPartialWithdrawal(token_id: uint256, amount: uint256):
+def requestPartialWithdrawal(token_id: uint256, amount: uint64):
     self.check_allowed(token_id, self._owner(token_id))
     assert amount != 0, "ERC-XXXX: zero partial withdrawal amount"
     extcall self.withdrawal_receiver(token_id).beacon_chain_request(
@@ -344,7 +344,7 @@ def requestPartialWithdrawal(token_id: uint256, amount: uint256):
         concat(
             self.token_data[token_id].validator_key_hi,
             self.token_data[token_id].validator_key_lo,
-            convert(convert((amount + 999_999_999) // 1_000_000_000, uint64), bytes8),
+            convert(amount, bytes8),
         ),
         value=msg.value,
     )

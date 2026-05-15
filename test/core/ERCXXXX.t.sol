@@ -441,11 +441,11 @@ contract ERCXXXXTest is Test {
 
         _mockWithdrawalRequest(fee, amount);
         hoax(user1, 1 ether);
-        dut.requestPartialWithdrawal{value: 2}(id1, uint256(amount) * 1e9);
+        dut.requestPartialWithdrawal{value: 2}(id1, amount);
 
         hoax(user2, 1 ether);
         vm.expectRevert("ERC-721: not owner or approved");
-        dut.requestPartialWithdrawal{value: 2}(id1, uint256(amount) * 1e9);
+        dut.requestPartialWithdrawal{value: 2}(id1, amount);
     }
 
     function test_request_partial_withdrawal_fee_from_receiver(uint64 amount) public {
@@ -455,7 +455,7 @@ contract ERCXXXXTest is Test {
 
         _mockWithdrawalRequest(fee, amount);
         vm.prank(user1);
-        dut.requestPartialWithdrawal(id1, uint256(amount) * 1e9);
+        dut.requestPartialWithdrawal(id1, amount);
     }
 
     function test_request_partial_withdrawal_reject_zero() public {
@@ -548,15 +548,6 @@ contract ERCXXXXTest is Test {
         vm.prank(user1);
         // reverts if stored index is stale
         dut.transferFrom(user1, user2, id2);
-    }
-
-    function test_request_partial_withdrawal_round_up(uint64 amount) public {
-        vm.assume(amount != 0 && amount < 1 gwei);
-        uint256 fee = 1 wei;
-
-        _mockWithdrawalRequest(fee, 1); // rounding to zero can cause a full withdrawal
-        hoax(user1, 1 ether);
-        dut.requestPartialWithdrawal{value: fee}(id1, amount);
     }
 
     function test_approve_by_operator() public {

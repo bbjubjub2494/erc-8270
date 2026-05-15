@@ -36,9 +36,9 @@ interface IERCXXXX is IERC721Enumerable, IERC721Metadata, IERC5646 {
      * @notice Request an EIP-7002 partial withdrawal of the validator controlled by this token.
      *   @dev The caller may add ether value to the call in order to cover the EIP-7002 fee.
      * 	  @param tokenId The ERC-721 id of the token.
-     * 	  @param amount the ether amount to withdraw with 18 decimals.
+     * 	  @param amount the amount to withdraw, in consensus layer units.
      */
-    function requestPartialWithdrawal(uint256 tokenId, uint256 amount) external payable;
+    function requestPartialWithdrawal(uint256 tokenId, uint64 amount) external payable;
 
     /**
      * @notice Request an EIP-7002 full withdrawal and exit of the validator controlled by this token.
