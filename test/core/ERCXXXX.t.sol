@@ -6,8 +6,14 @@ import {stdJson} from "dependencies/forge-std-1.16.0/src/StdJson.sol";
 
 import {IERC20} from "dependencies/forge-std-1.16.0/src/interfaces/IERC20.sol";
 import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
-import {IERC721, IERC721Metadata, IERC721TokenReceiver} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+import {
+    IERC721,
+    IERC721Enumerable,
+    IERC721Metadata,
+    IERC721TokenReceiver
+} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
 
+import {IERC5646} from "src/interfaces/IERC5646.sol";
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
 
 using stdJson for string;
@@ -55,9 +61,11 @@ contract ERCXXXXTest is Test {
     // ERC-165 //
 
     function test_supports_interface() external view {
-        assertTrue(dut.supportsInterface(type(IERC721).interfaceId));
         assertTrue(dut.supportsInterface(type(IERC165).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC721).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC721Enumerable).interfaceId));
         assertTrue(dut.supportsInterface(type(IERC721Metadata).interfaceId));
+        assertTrue(dut.supportsInterface(type(IERC5646).interfaceId));
         assertFalse(dut.supportsInterface(type(IERC20).interfaceId));
     }
 

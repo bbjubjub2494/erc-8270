@@ -68,12 +68,12 @@ def __init__(withdrawal_receiver_code: Bytes[49152]):
 
 ### ERC-165 ###
 
-SUPPORTED_INTERFACES: constant(bytes4[4]) = [
+SUPPORTED_INTERFACES: constant(bytes4[5]) = [
     0x01ffc9a7,  # ERC-165
     0x80ac58cd,  # ERC-721
     0x780e9d63,  # ERC-721 enumeration
     0x5b5e139f,  # ERC-721 metadata
-    # TODO ERC-5646, ERC-XXXX
+    0xf5112315,  # ERC-5646
 ]
 
 
