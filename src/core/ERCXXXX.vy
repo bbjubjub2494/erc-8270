@@ -112,7 +112,7 @@ def tokenURI(token_id: uint256) -> String[65536]:
         uint2str(token_id),
         '",',
         """
-    "description": "TODO",
+    "description": "Transferable Beacon Chain Withdrawal Credentials",
     "image": "TODO",
     "attributes": [{
         "trait_type": "Validator Key",
