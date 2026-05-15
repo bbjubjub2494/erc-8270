@@ -365,9 +365,9 @@ def requestFullWithdrawal(token_id: uint256):
     )
 
 
-@external
+@internal
 @payable
-def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
+def _request_consolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
     self.check_allowed(token_id, self._owner(token_id))
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
@@ -393,17 +393,17 @@ def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_l
 
 @external
 @payable
+def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
+    self._request_consolidation(token_id, target_key_hi, target_key_lo)
+
+
+@external
+@payable
 def requestSwitchToCompounding(token_id: uint256):
-    self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
-        CONSOLIDATION_REQUESTS,
-        concat(
-            self.token_data[token_id].validator_key_hi,
-            self.token_data[token_id].validator_key_lo,
-            self.token_data[token_id].validator_key_hi,
-            self.token_data[token_id].validator_key_lo,
-        ),
-        value=msg.value,
+    self._request_consolidation(
+        token_id,
+        self.token_data[token_id].validator_key_hi,
+        self.token_data[token_id].validator_key_lo,
     )
 
 

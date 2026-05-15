@@ -368,7 +368,10 @@ contract ERCXXXXTest is Test {
 
         hoax(user1);
         dut.requestSwitchToCompounding{value: fee}(id1);
-        // no change
+        expected = vm.eip712HashStruct(
+            "ConsolidationRequested(bytes32 previousFingerprint, bytes32 targetKeyHi, bytes16 targetKeyLo)",
+            abi.encode(ConsolidationRequested(expected, validatorKey1Hi, validatorKey1Lo))
+        );
         assertEq(dut.getStateFingerprint(id1), expected);
 
         hoax(user1);
