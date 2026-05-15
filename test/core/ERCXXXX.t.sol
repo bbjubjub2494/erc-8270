@@ -98,7 +98,7 @@ contract ERCXXXXTest is Test {
         assertEq(buf.readString(".attributes[0].trait_type"), "Validator Key");
         assertEq(vm.parseBytes(buf.readString(".attributes[0].value")), bytes.concat(validatorKey1Hi, validatorKey1Lo));
         assertEq(buf.readString(".attributes[1].trait_type"), "Withdrawal Address");
-        assertEq(vm.parseBytes(buf.readString(".attributes[1].value")), abi.encodePacked(dut.withdrawalAddressOf(id1)));
+        assertEq(buf.readString(".attributes[1].value"), vm.toString(dut.withdrawalAddressOf(id1)));
     }
 
     // ERC-721 //

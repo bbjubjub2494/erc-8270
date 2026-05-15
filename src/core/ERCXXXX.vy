@@ -126,7 +126,7 @@ def tokenURI(token_id: uint256) -> String[65536]:
         "trait_type": "Withdrawal Address",
         "value": "0x"""
         ,
-        fmt.address_to_hex(self.token_data[token_id].withdrawal_address),
+        fmt.address_to_hex_erc55(self.token_data[token_id].withdrawal_address),
         '"}]}',
     )
 
