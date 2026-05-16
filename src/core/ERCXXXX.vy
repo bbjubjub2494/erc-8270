@@ -156,7 +156,7 @@ def check_allowed(token_id: uint256, owner: address):
 
 @internal
 @view
-def check_operator(token_id: uint256, owner: address):
+def check_operator(owner: address):
     if msg.sender != owner:
         assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or operator"
 
@@ -191,7 +191,7 @@ def isApprovedForAll(owner: address, operator: address) -> bool:
 def approve(approved: address, token_id: uint256):
     assert msg.value == 0, "ERC-721: unexpected value"
     owner: address = self._owner(token_id)
-    self.check_operator(token_id, owner)
+    self.check_operator(owner)
     self.token_data[token_id].approved = approved
     log IERC721.Approval(owner=owner, approved=approved, token_id=token_id)
 
