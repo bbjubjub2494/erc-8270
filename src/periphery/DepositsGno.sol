@@ -8,8 +8,6 @@ import {IERC677} from "src/interfaces/IERC677.sol";
 import {ISBCDepositContract} from "src/interfaces/ISBCDepositContract.sol";
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
 
-import {SBCDepositContractMock} from "test/mock/SBCDepositContractMock.sol";
-
 /// @title ERCXXXX: Deposit Helper — Gnosis variant
 /// @author bbjubjub.eth
 /// @notice Deposit helper for ERC-XXXX wrapped validators.
