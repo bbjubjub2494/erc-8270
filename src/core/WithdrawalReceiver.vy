@@ -40,3 +40,10 @@ def _pull_native_balance(destination: address):
 def _arbitrary_call(target: address, data: Bytes[65536]):
     assert msg.sender == CONTROLLER
     raw_call(target, data, value=msg.value)
+
+
+@external
+@payable
+def __default__():
+    # accept transfers. This could be useful for MEV payments
+    assert len(msg.data) == 0

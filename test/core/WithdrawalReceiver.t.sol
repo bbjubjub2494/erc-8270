@@ -40,6 +40,18 @@ contract ERCXXXXTest is Test {
         assertEq(user.balance, 1 ether);
     }
 
+    function test_default() public {
+        bool ok;
+
+        hoax(user);
+        (ok,) = address(dut).call{value: 1 ether}("");
+        assertTrue(ok, "ETH transfer succeeds");
+
+        hoax(user);
+        (ok,) = address(dut).call{value: 1 ether}(hex"abcdef01");
+        assertFalse(ok, "call with unexpected calldata fails");
+    }
+
     // Regression Tests //
 
     function test_inner_revert() public {
