@@ -7,13 +7,13 @@ def to_hex_digit(nibble: uint256) -> String[1]:
     return slice(alphabet, nibble, 1)
 
 
-@view
+@pure
 def to_hex(byte: uint256) -> String[2]:
     byte = byte % 256
     return concat(self.to_hex_digit(byte // 16), self.to_hex_digit(byte % 16))
 
 
-@view
+@pure
 def bytes32_to_hex(data: bytes32) -> String[64]:
     v: uint256 = convert(data, uint256)
     return concat(
@@ -52,7 +52,7 @@ def bytes32_to_hex(data: bytes32) -> String[64]:
     )
 
 
-@view
+@pure
 def bytes16_to_hex(data: bytes16) -> String[32]:
     v: uint256 = convert(data, uint256)
     return concat(
@@ -75,7 +75,7 @@ def bytes16_to_hex(data: bytes16) -> String[32]:
     )
 
 
-@view
+@pure
 def address_to_hex(addr: address) -> String[40]:
     v: uint256 = convert(addr, uint256)
     return concat(
@@ -102,7 +102,7 @@ def address_to_hex(addr: address) -> String[40]:
     )
 
 
-@view
+@pure
 def address_to_hex_erc55(addr: address) -> String[40]:
     plain: String[40] = self.address_to_hex(addr)
     checksum: uint256 = convert(keccak256(plain), uint256)
@@ -150,7 +150,7 @@ def address_to_hex_erc55(addr: address) -> String[40]:
     )
 
 
-@view
+@pure
 def erc55_process_nibble(checksum: uint256, char: String[1]) -> String[1]:
     if checksum % 16 > 7:
         if char == "a":
