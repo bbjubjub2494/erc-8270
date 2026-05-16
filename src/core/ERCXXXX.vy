@@ -17,6 +17,24 @@ interface ERC721Receiver:
 
 implements: IERC721
 
+
+event ConsolidationRequest:
+    token_id: indexed(uint256)
+    target_key_hi: bytes32
+    target_key_lo: bytes16
+
+
+event ArbitraryCall:
+    token_id: indexed(uint256)
+    target: address
+    data: Bytes[2**16]
+
+
+event PullNativeBalance:
+    token_id: indexed(uint256)
+    destination: address
+
+
 # we cap the token id so that it fits with a 20-byte address in one storage slot.
 # this is purely for ease of reasoning since we will never mint this many.
 MAX_ID: constant(uint256) = 2**96
@@ -103,7 +121,7 @@ def symbol() -> String[7]:
 
 @external
 @view
-def tokenURI(token_id: uint256) -> String[65536]:
+def tokenURI(token_id: uint256) -> String[2**16]:
     self.check_exists(token_id)
     return concat(
         """data:application/json,{
@@ -400,6 +418,9 @@ def _request_consolidation(token_id: uint256, target_key_hi: bytes32, target_key
         ),
         value=msg.value,
     )
+    log ConsolidationRequest(
+        token_id=token_id, target_key_hi=target_key_hi, target_key_lo=target_key_lo
+    )
 
 
 @external
@@ -430,11 +451,12 @@ def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
         )
     )
     extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
+    log PullNativeBalance(token_id=token_id, destination=destination)
 
 
 @external
 @payable
-def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
+def arbitraryCall(token_id: uint256, target: address, data: Bytes[2**16] = b""):
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
     self.token_data[token_id].state_fingerprint = keccak256(
@@ -446,3 +468,4 @@ def arbitraryCall(token_id: uint256, target: address, data: Bytes[65536] = b""):
         )
     )
     extcall self.withdrawal_receiver(token_id)._arbitrary_call(target, data, value=msg.value)
+    log ArbitraryCall(token_id=token_id, target=target, data=data)

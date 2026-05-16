@@ -5,6 +5,12 @@ import {IERC721Enumerable, IERC721Metadata} from "dependencies/forge-std-1.16.0/
 import {IERC5646} from "src/interfaces/IERC5646.sol";
 
 interface IERCXXXX is IERC721Enumerable, IERC721Metadata, IERC5646 {
+    event ConsolidationRequest(uint256 indexed tokenId, bytes32 targetKeyHi, bytes16 targetKeyLo);
+
+    event ArbitraryCall(uint256 indexed tokenId, address target, bytes data);
+
+    event PullNativeBalance(uint256 indexed tokenId, address destination);
+
     /**
      * @notice Prepare a token intended to wrap the given validator.
      *   @dev The withdrawal address of the token depends only on the parameters of this function, hence it can be determined counterfactually.

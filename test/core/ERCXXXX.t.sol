@@ -477,6 +477,8 @@ contract ERCXXXXTest is Test {
         uint256 fee = 1 wei;
 
         _mockConsolidationRequest(fee, validatorKey1Hi, validatorKey1Lo);
+        vm.expectEmit();
+        emit IERCXXXX.ConsolidationRequest(id1, validatorKey1Hi, validatorKey1Lo);
         hoax(user1, 1 ether);
         dut.requestSwitchToCompounding{value: 2}(id1);
 
@@ -498,6 +500,8 @@ contract ERCXXXXTest is Test {
         uint256 fee = 1 wei;
 
         _mockConsolidationRequest(fee, validatorKey2Hi, validatorKey2Lo);
+        vm.expectEmit();
+        emit IERCXXXX.ConsolidationRequest(id1, validatorKey2Hi, validatorKey2Lo);
         hoax(user1, 1 ether);
         dut.requestConsolidation{value: 2}(id1, validatorKey2Hi, validatorKey2Lo);
 
@@ -527,6 +531,8 @@ contract ERCXXXXTest is Test {
         dut.pullNativeBalance(id1, destination);
 
         vm.expectCall(destination, 1 ether, "");
+        vm.expectEmit();
+        emit IERCXXXX.PullNativeBalance(id1, destination);
         vm.prank(user1);
         dut.pullNativeBalance(id1, destination);
 
@@ -544,6 +550,8 @@ contract ERCXXXXTest is Test {
         dut.arbitraryCall{value: value}(id1, target, data);
 
         vm.expectCall(target, value, data);
+        vm.expectEmit();
+        emit IERCXXXX.ArbitraryCall(id1, target, data);
         hoax(user1, value);
         dut.arbitraryCall{value: value}(id1, target, data);
     }
