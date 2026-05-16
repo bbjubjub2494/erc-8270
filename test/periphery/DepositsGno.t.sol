@@ -76,6 +76,14 @@ contract DepositsTest is Test {
         dut.topup(id1, amount);
     }
 
+    function test_topup_extra_value() public {
+        // audit false positive
+        uint256 amount = 1 ether + 1;
+        token.approve(address(dut), amount);
+        vm.expectRevert("DepositContract: deposit value not multiple of gwei");
+        dut.topup(id1, amount);
+    }
+
     function test_protected_deposit() public {
         uint256 amount = 1 ether;
         bytes32 withdrawalCredentials =

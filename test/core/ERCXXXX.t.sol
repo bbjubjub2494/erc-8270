@@ -132,7 +132,7 @@ contract ERCXXXXTest is Test {
 
     function test_unauthorized() external {
         vm.prank(user2);
-        vm.expectRevert("ERC-721: not owner or approved");
+        vm.expectRevert("ERC-721: not owner or operator");
         dut.approve(user2, id1);
 
         vm.prank(user2);
@@ -188,6 +188,10 @@ contract ERCXXXXTest is Test {
         vm.prank(user1);
         dut.setApprovalForAll(user2, false);
         assertFalse(dut.isApprovedForAll(user1, user2));
+
+        vm.prank(user1);
+        vm.expectRevert("ERC-721: approve to caller");
+        dut.setApprovalForAll(user1, true);
     }
 
     function test_safe_transfer_1() public {
@@ -514,6 +518,7 @@ contract ERCXXXXTest is Test {
     function test_pull_native_balance(address destination) public {
         assumeNotPrecompile(destination);
         assumePayable(destination);
+        vm.assume(destination != address(0));
 
         vm.deal(dut.withdrawalAddressOf(id1), 1 ether);
 
@@ -524,6 +529,10 @@ contract ERCXXXXTest is Test {
         vm.expectCall(destination, 1 ether, "");
         vm.prank(user1);
         dut.pullNativeBalance(id1, destination);
+
+        vm.expectRevert("ERC-XXXX: pull native balance to zero");
+        vm.prank(user1);
+        dut.pullNativeBalance(id1, address(0));
     }
 
     function test_arbitrary_call(address target, uint256 value, bytes calldata data) public {
@@ -560,6 +569,17 @@ contract ERCXXXXTest is Test {
         // the owner field should be the owner, not the caller
         vm.expectEmit();
         emit IERC721.Approval(user1, user3, id1);
+        vm.prank(user2);
+        dut.approve(user3, id1);
+    }
+
+    function test_approve_by_approvee() public {
+        vm.prank(user1);
+        dut.approve(user2, id1);
+
+        // the approvee cannot set a new approvee.
+        // ERC-721 conformance
+        vm.expectRevert("ERC-721: not owner or operator");
         vm.prank(user2);
         dut.approve(user3, id1);
     }

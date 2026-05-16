@@ -154,6 +154,13 @@ def check_allowed(token_id: uint256, owner: address):
         assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or approved"
 
 
+@internal
+@view
+def check_operator(token_id: uint256, owner: address):
+    if msg.sender != owner:
+        assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or operator"
+
+
 @external
 @view
 def balanceOf(owner: address) -> uint256:
@@ -182,14 +189,16 @@ def isApprovedForAll(owner: address, operator: address) -> bool:
 @external
 @payable
 def approve(approved: address, token_id: uint256):
+    assert msg.value == 0, "ERC-721: unexpected value"
     owner: address = self._owner(token_id)
-    self.check_allowed(token_id, owner)
+    self.check_operator(token_id, owner)
     self.token_data[token_id].approved = approved
     log IERC721.Approval(owner=owner, approved=approved, token_id=token_id)
 
 
 @external
 def setApprovalForAll(operator: address, approved: bool):
+    assert operator != msg.sender, "ERC-721: approve to caller"
     self.approval_for_all[msg.sender][operator] = approved
     log IERC721.ApprovalForAll(owner=msg.sender, operator=operator, approved=approved)
 
@@ -229,6 +238,7 @@ def _mint(receiver: address, token_id: uint256):
 @external
 @payable
 def transferFrom(owner: address, receiver: address, token_id: uint256):
+    assert msg.value == 0, "ERC-721: unexpected value"
     self._transfer(owner, receiver, token_id)
 
 
@@ -240,6 +250,7 @@ def safeTransferFrom(
     token_id: uint256,
     data: Bytes[1024] = b"",
 ):
+    assert msg.value == 0, "ERC-721: unexpected value"
     self._transfer(owner, receiver, token_id)
 
     if receiver.is_contract:
@@ -411,6 +422,7 @@ def requestSwitchToCompounding(token_id: uint256):
 def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
+    assert destination != empty(address), "ERC-XXXX: pull native balance to zero"
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
             keccak256("NativeBalancePulled(bytes32 previousFingerprint)"),

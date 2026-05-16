@@ -66,7 +66,7 @@ contract DepositsGno is DepositsBase {
     }
 
     function _deposit(uint256 amount, bytes memory depositData) private {
-        GNO_TOKEN.transferFrom(msg.sender, address(this), amount);
-        GNO_TOKEN.transferAndCall(DEPOSIT_CONTRACT, amount, depositData);
+        require(GNO_TOKEN.transferFrom(msg.sender, address(this), amount));
+        require(GNO_TOKEN.transferAndCall(DEPOSIT_CONTRACT, amount, depositData));
     }
 }
