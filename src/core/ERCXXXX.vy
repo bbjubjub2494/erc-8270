@@ -11,7 +11,7 @@ from . import format_helpers as fmt
 
 interface ERC721Receiver:
     def onERC721Received(
-        sender: address, owner: address, token_id: uint256, data: Bytes[1024]
+        sender: address, owner: address, token_id: uint256, data: Bytes[2**16]
     ) -> bytes4: nonpayable
 
 
@@ -248,7 +248,7 @@ def safeTransferFrom(
     owner: address,
     receiver: address,
     token_id: uint256,
-    data: Bytes[1024] = b"",
+    data: Bytes[2**16] = b"",
 ):
     assert msg.value == 0, "ERC-721: unexpected value"
     self._transfer(owner, receiver, token_id)
