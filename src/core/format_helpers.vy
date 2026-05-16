@@ -155,14 +155,14 @@ def erc55_process_nibble(checksum: uint256, char: String[1]) -> String[1]:
     if checksum % 16 > 7:
         if char == "a":
             char = "A"
-        if char == "b":
+        elif char == "b":
             char = "B"
-        if char == "c":
+        elif char == "c":
             char = "C"
-        if char == "d":
+        elif char == "d":
             char = "D"
-        if char == "e":
+        elif char == "e":
             char = "E"
-        if char == "f":
+        elif char == "f":
             char = "F"
     return char
