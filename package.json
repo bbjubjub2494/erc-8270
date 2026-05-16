@@ -1,0 +1,10 @@
+{
+  "name": "erc-xxxx",
+  "private": true,
+  "workspaces": [
+    "common",
+    "contracts",
+    "favicons",
+    "frontend"
+  ]
+}

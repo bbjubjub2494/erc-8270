@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit to Validator</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#333333">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Deposit to Validator</h1>
+            <p style="color: #9ca3af;">Stake GNO to activate your validator</p>
+        </header>
+
+        <main id="app">
+            <div class="token-info">
+                <div class="deposit-form">
+                    <div class="form-group">
+                        <label for="walletAddress" class="form-label">Wallet Address</label>
+                        <div class="wallet-status" id="walletStatus">
+                            <button class="connect-button" id="connectButton">Connect Wallet</button>
+                            <div class="wallet-connected" id="walletConnected" style="display: none;">
+                                <span id="walletAddress">0x0000...0000</span>
+                                <span class="connected-badge">Connected</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tokenId" class="form-label">Token ID</label>
+                        <input
+                            type="text"
+                            class="form-input"
+                            id="tokenId"
+                            placeholder="Enter your token ID"
+                            disabled
+                        >
+                        <p class="form-hint">The NFT token ID you want to deposit to</p>
+                    </div>
+
+                    <div class="form-group" id="withdrawalAddressGroup" style="display: none;">
+                        <label for="withdrawalAddress" class="form-label">Withdrawal Address</label>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input
+                                type="text"
+                                class="form-input"
+                                id="withdrawalAddress"
+                                placeholder="Loading..."
+                                readonly
+                                style="flex: 1;"
+                            >
+                            <button class="copy-button" id="copyWithdrawalAddress" title="Copy to clipboard">📋</button>
+                        </div>
+                        <p class="form-hint">Use this address as the withdrawal address when generating deposit data</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="depositData" class="form-label">Deposit Data (JSON)</label>
+                        <textarea
+                            class="form-textarea"
+                            id="depositData"
+                            placeholder='[{"pubkey": "...", "withdrawal_credentials": "...", ...}]'
+                            rows="8"
+                            disabled
+                        ></textarea>
+                        <p class="form-hint">Paste the deposit data JSON from EthStaker deposit CLI or similar tool</p>
+                    </div>
+
+                    <button class="parse-button" id="parseButton" disabled>
+                        Parse & Validate
+                    </button>
+
+                    <div class="parsed-data" id="parsedData" style="display: none;">
+                        <h3 class="status-title">Parsed Deposit Data</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">Network</span>
+                                <span class="status-value" id="parsedNetwork">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Amount</span>
+                                <span class="status-value" id="parsedAmount">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Signature</span>
+                                <span class="status-value" id="parsedSignature">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Compounding</span>
+                                <span class="status-value" id="parsedCompounding">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="mint-button" id="depositButton" disabled style="display: none;">
+                        Deposit to Validator
+                    </button>
+
+                    <div class="status-message" id="statusMessage" style="display: none;"></div>
+                </div>
+            </div>
+
+            <div class="validator-status">
+                <div class="status-title">Transaction Status</div>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Transaction Hash</span>
+                        <span class="status-value" id="txHash">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Status</span>
+                        <span class="status-value" id="txStatus">Not Started</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navigation">
+                <a href="/" class="nav-link">← Back to View Tokens</a>
+                <span style="margin: 0 1rem; color: #333;">|</span>
+                <a href="/mint.html" class="nav-link">Mint New NFT</a>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="/deposit.js"></script>
+</body>
+</html>

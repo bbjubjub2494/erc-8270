@@ -1,0 +1,27 @@
+{
+  "name": "@erc-xxxx/contracts",
+  "version": "1.0.0",
+  "description": "smart contracts for ERC-XXXX with exported addressed and ABIs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "out"
+  ],
+  "scripts": {
+    "prepare": "node generate.mjs"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "erc721",
+    "staking"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "fs-extra": "^11.3.5"
+  }
+}

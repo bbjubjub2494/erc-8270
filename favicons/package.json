@@ -1,0 +1,12 @@
+{
+  "name": "@erc-xxxx/favicons",
+  "version": "0.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "prepare": "node generate.mjs"
+  },
+  "dependencies": {
+    "favicons": "^7.2.0"
+  }
+}
