@@ -6,7 +6,13 @@ from src.interfaces import IWithdrawalReceiver
 
 implements: IWithdrawalReceiver
 
+WITHDRAWAL_REQUESTS: constant(address) = 0x00000961Ef480Eb55e80D19ad83579A64c007002
+CONSOLIDATION_REQUESTS: constant(address) = 0x0000BBdDc7CE488642fb579F8B00f3a590007251
+
 CONTROLLER: public(immutable(address))
+
+validator_key_hi: bytes32
+validator_key_lo: bytes16
 
 
 @deploy
@@ -22,11 +28,38 @@ def _query_fee(target: address) -> uint256:
 
 
 @external
-@payable
-def beacon_chain_request(target: address, data: Bytes[96]):
+@view
+def validator_key() -> (bytes32, bytes16):
+    return self.validator_key_hi, self.validator_key_lo
+
+
+@external
+def set_controller(key_hi: bytes32, key_lo: bytes16):
     assert msg.sender == CONTROLLER
-    fee: uint256 = self._query_fee(target)
-    raw_call(target, data, value=fee)
+    self.validator_key_hi = key_hi
+    self.validator_key_lo = key_lo
+
+
+@external
+@payable
+def _request_withdrawal(amount: bytes8):
+    assert msg.sender == CONTROLLER
+    fee: uint256 = self._query_fee(WITHDRAWAL_REQUESTS)
+    raw_call(
+        WITHDRAWAL_REQUESTS, concat(self.validator_key_hi, self.validator_key_lo, amount), value=fee
+    )
+
+
+@external
+@payable
+def _request_consolidation(target_key_hi: bytes32, target_key_lo: bytes16):
+    assert msg.sender == CONTROLLER
+    fee: uint256 = self._query_fee(CONSOLIDATION_REQUESTS)
+    raw_call(
+        CONSOLIDATION_REQUESTS,
+        concat(self.validator_key_hi, self.validator_key_lo, target_key_hi, target_key_lo),
+        value=fee,
+    )
 
 
 @external

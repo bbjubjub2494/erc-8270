@@ -8,11 +8,15 @@ import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol"
 import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
 
 interface IWithdrawalReceiver {
+    function validator_key() external view returns (bytes32, bytes16);
+    function set_controller(bytes32 key_hi, bytes16 key_lo) external;
+    function _request_withdrawal(bytes8 amount) external payable;
+    function _request_consolidation(bytes32 target_key_hi, bytes16 target_key_lo) external payable;
     function _arbitrary_call(address destination, bytes calldata data) external payable;
     function _pull_native_balance(address destination) external;
 }
 
-contract ERCXXXXTest is Test {
+contract WithdrawalReceiverTest is Test {
     address constant WITHDRAWAL_REQUESTS = 0x00000961Ef480Eb55e80D19ad83579A64c007002; // EIP-7002 contract
     address constant CONSOLIDATION_REQUESTS = 0x0000BBdDc7CE488642fb579F8B00f3a590007251; // EIP-7251 contract
 
@@ -26,6 +30,54 @@ contract ERCXXXXTest is Test {
     function setUp() external {
         vm.prank(controller);
         dut = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
+        vm.prank(controller);
+        dut.set_controller(validatorKey1Hi, validatorKey1Lo);
+    }
+
+    function test_set_controller() public view {
+        (bytes32 hi, bytes16 lo) = dut.validator_key();
+        assertEq(hi, validatorKey1Hi);
+        assertEq(lo, validatorKey1Lo);
+    }
+
+    function test_set_controller_only_controller() public {
+        vm.prank(controller);
+        IWithdrawalReceiver fresh = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
+        vm.prank(user);
+        vm.expectRevert();
+        fresh.set_controller(validatorKey1Hi, validatorKey1Lo);
+    }
+
+    function test_request_withdrawal(uint64 amount) public {
+        uint256 fee = 1 gwei;
+        vm.mockCall(WITHDRAWAL_REQUESTS, bytes(""), abi.encode(fee));
+        vm.expectCall(WITHDRAWAL_REQUESTS, fee, bytes.concat(validatorKey1Hi, validatorKey1Lo, bytes8(amount)));
+        vm.deal(address(dut), fee);
+        vm.prank(controller);
+        dut._request_withdrawal(bytes8(amount));
+    }
+
+    function test_request_withdrawal_only_controller() public {
+        vm.prank(user);
+        vm.expectRevert();
+        dut._request_withdrawal(bytes8(0));
+    }
+
+    function test_request_consolidation(bytes32 target_key_hi, bytes16 target_key_lo) public {
+        uint256 fee = 1 gwei;
+        vm.mockCall(CONSOLIDATION_REQUESTS, bytes(""), abi.encode(fee));
+        vm.expectCall(
+            CONSOLIDATION_REQUESTS, fee, bytes.concat(validatorKey1Hi, validatorKey1Lo, target_key_hi, target_key_lo)
+        );
+        vm.deal(address(dut), fee);
+        vm.prank(controller);
+        dut._request_consolidation(target_key_hi, target_key_lo);
+    }
+
+    function test_request_consolidation_only_controller() public {
+        vm.prank(user);
+        vm.expectRevert();
+        dut._request_consolidation(validatorKey1Hi, validatorKey1Lo);
     }
 
     function test_pull_native_balance() public {

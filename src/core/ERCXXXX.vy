@@ -45,23 +45,17 @@ MAX_ID: constant(uint256) = 2**96
 struct TokenData:
     index_and_owner: uint256
     approved: address
-    validator_key_hi: bytes32
-    validator_key_lo: bytes16
     withdrawal_address: address
     state_fingerprint: bytes32
-    _padding: bytes32[2]
 
 
 next_id: public(uint256)
 tokens_by_owner: HashMap[address, DynArray[uint256, MAX_ID]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
 
-# this puts the unused 0th element at 0xf8 and the first NFT at 0x100
-_padding: bytes32[245]
+# this puts the unused 0th element at 0xfc and the first NFT at 0x100
+_padding: bytes32[249]
 token_data: TokenData[MAX_ID]
-
-WITHDRAWAL_REQUESTS: constant(address) = 0x00000961Ef480Eb55e80D19ad83579A64c007002
-CONSOLIDATION_REQUESTS: constant(address) = 0x0000BBdDc7CE488642fb579F8B00f3a590007251
 
 WITHDRAWAL_RECEIVER_IMPL: immutable(address)
 
@@ -122,7 +116,10 @@ def symbol() -> String[7]:
 @external
 @view
 def tokenURI(token_id: uint256) -> String[2**16]:
-    self.check_exists(token_id)
+    receiver: IWithdrawalReceiver = self.withdrawal_receiver(token_id)
+    key_hi: bytes32 = empty(bytes32)
+    key_lo: bytes16 = empty(bytes16)
+    key_hi, key_lo = staticcall receiver.validator_key()
     return concat(
         """data:application/json,{
     "name": "ERC-XXXX Token #"""
@@ -136,8 +133,8 @@ def tokenURI(token_id: uint256) -> String[2**16]:
         "trait_type": "Validator Key",
         "value": "0x"""
         ,
-        fmt.bytes32_to_hex(self.token_data[token_id].validator_key_hi),
-        fmt.bytes16_to_hex(self.token_data[token_id].validator_key_lo),
+        fmt.bytes32_to_hex(key_hi),
+        fmt.bytes16_to_hex(key_lo),
         '"',
         """
     }, {
@@ -315,7 +312,9 @@ def getStateFingerprint(token_id: uint256) -> bytes32:
 @internal
 @view
 def withdrawal_receiver(token_id: uint256) -> IWithdrawalReceiver:
-    return IWithdrawalReceiver(self.token_data[token_id].withdrawal_address)
+    withdrawal_address: address = self.token_data[token_id].withdrawal_address
+    assert withdrawal_address != empty(address), "ERC-721: token does not exist"
+    return IWithdrawalReceiver(withdrawal_address)
 
 
 @external
@@ -324,9 +323,6 @@ def mint(
     validator_key_lo: bytes16,
     initial_owner: address = msg.sender,
 ) -> uint256:
-    # compressed BLS12 points start with flags, hence structurally cannot be zero
-    # we use this to save an sload in validatorKeyOf()
-    assert validator_key_hi != empty(bytes32), "ERC-XXXX: invalid validator key"
     withdrawal_address: address = create_minimal_proxy_to(
         WITHDRAWAL_RECEIVER_IMPL,
         revert_on_failure=False,
@@ -337,22 +333,18 @@ def mint(
     token_id: uint256 = self.next_id
     self.next_id = token_id + 1
     self._mint(initial_owner, token_id)
-    self.token_data[token_id].validator_key_hi = validator_key_hi
-    self.token_data[token_id].validator_key_lo = validator_key_lo
     self.token_data[token_id].withdrawal_address = withdrawal_address
     self.token_data[token_id].state_fingerprint = keccak256(keccak256("Minted()"))
+    extcall IWithdrawalReceiver(withdrawal_address).set_controller(
+        validator_key_hi, validator_key_lo
+    )
     return token_id
 
 
 @external
 @view
 def validatorKeyOf(token_id: uint256) -> (bytes32, bytes16):
-    validator_key_hi: bytes32 = self.token_data[token_id].validator_key_hi
-    assert validator_key_hi != empty(bytes32), "ERC-721: token does not exist"
-    return (
-        validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
-    )
+    return staticcall self.withdrawal_receiver(token_id).validator_key()
 
 
 @external
@@ -368,13 +360,8 @@ def withdrawalAddressOf(token_id: uint256) -> address:
 def requestPartialWithdrawal(token_id: uint256, amount: uint64):
     self.check_allowed(token_id, self._owner(token_id))
     assert amount != 0, "ERC-XXXX: zero partial withdrawal amount"
-    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
-        WITHDRAWAL_REQUESTS,
-        concat(
-            self.token_data[token_id].validator_key_hi,
-            self.token_data[token_id].validator_key_lo,
-            convert(amount, bytes8),
-        ),
+    extcall self.withdrawal_receiver(token_id)._request_withdrawal(
+        convert(amount, bytes8),
         value=msg.value,
     )
 
@@ -383,13 +370,8 @@ def requestPartialWithdrawal(token_id: uint256, amount: uint64):
 @payable
 def requestFullWithdrawal(token_id: uint256):
     self.check_allowed(token_id, self._owner(token_id))
-    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
-        WITHDRAWAL_REQUESTS,
-        concat(
-            self.token_data[token_id].validator_key_hi,
-            self.token_data[token_id].validator_key_lo,
-            empty(bytes8),
-        ),
+    extcall self.withdrawal_receiver(token_id)._request_withdrawal(
+        empty(bytes8),
         value=msg.value,
     )
 
@@ -408,14 +390,9 @@ def _request_consolidation(token_id: uint256, target_key_hi: bytes32, target_key
             target_key_lo,
         )
     )
-    extcall self.withdrawal_receiver(token_id).beacon_chain_request(
-        CONSOLIDATION_REQUESTS,
-        concat(
-            self.token_data[token_id].validator_key_hi,
-            self.token_data[token_id].validator_key_lo,
-            target_key_hi,
-            target_key_lo,
-        ),
+    extcall self.withdrawal_receiver(token_id)._request_consolidation(
+        target_key_hi,
+        target_key_lo,
         value=msg.value,
     )
     log ConsolidationRequest(
@@ -432,11 +409,10 @@ def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_l
 @external
 @payable
 def requestSwitchToCompounding(token_id: uint256):
-    self._request_consolidation(
-        token_id,
-        self.token_data[token_id].validator_key_hi,
-        self.token_data[token_id].validator_key_lo,
-    )
+    key_hi: bytes32 = empty(bytes32)
+    key_lo: bytes16 = empty(bytes16)
+    key_hi, key_lo = staticcall self.withdrawal_receiver(token_id).validator_key()
+    self._request_consolidation(token_id, key_hi, key_lo)
 
 
 @external

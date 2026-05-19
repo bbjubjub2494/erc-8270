@@ -1,6 +1,23 @@
 @external
+@view
+def validator_key() -> (bytes32, bytes16):
+    ...
+
+
+@external
+def set_controller(key_hi: bytes32, key_lo: bytes16):
+    ...
+
+
+@external
 @payable
-def beacon_chain_request(target: address, data: Bytes[96]):
+def _request_withdrawal(amount: bytes8):
+    ...
+
+
+@external
+@payable
+def _request_consolidation(target_key_hi: bytes32, target_key_lo: bytes16):
     ...
 
 

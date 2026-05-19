@@ -55,7 +55,7 @@ contract ERCXXXXTest is Test {
         assertEq(vm.load(address(dut), bytes32(uint256(256))), bytes32(uint256(uint160(user1))));
 
         dut.mint(validatorKey1Hi, validatorKey1Lo, user2);
-        assertEq(vm.load(address(dut), bytes32(uint256(264))), bytes32(uint256(uint160(user2))));
+        assertEq(vm.load(address(dut), bytes32(uint256(260))), bytes32(uint256(uint160(user2))));
     }
 
     // ERC-165 //
