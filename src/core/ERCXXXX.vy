@@ -35,9 +35,8 @@ event PullNativeBalance:
     destination: address
 
 
-# we cap the token id so that it fits with a 20-byte address in one storage slot.
-# this is purely for ease of reasoning since we will never mint this many.
-MAX_ID: constant(uint256) = 2**96
+# this is just to silence a warning since we will never mint this many.
+MAX_ID: constant(uint256) = 2**64 - 1
 
 # we store all the data associated with a token in an array of structs
 # to increase locality and reduce hashing
