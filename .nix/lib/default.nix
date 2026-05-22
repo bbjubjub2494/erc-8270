@@ -32,9 +32,9 @@
       outputHash = "sha256-VixcA+T/lsEG4APrmCJmWpNJkIGwFgRDkFQWy3kcjBg=";
     };
 
-    solc_0_8_34 = pkgs.fetchurl {
-      url = "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.34+commit.80d5c536";
-      hash = "sha256-1Arcb5/bsiqX0yoC+gVoi/LueIav/EjJhRsK/Upyazk=";
+    solc_0_8_35 = pkgs.fetchurl {
+      url = "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.35+commit.47b9dedd";
+      hash = "sha256-+orJoy0wGtAjo27lop+OKR/jIAxgJE5DwUJTnoKmF/Q=";
     };
   in
     pkgs.buildNpmPackage (
@@ -61,9 +61,9 @@
         postPatch = ''
           ln -s ${soldeer-dependencies} contracts/dependencies
 
-          mkdir -p /build/.local/share/svm/0.8.34
-          cp ${solc_0_8_34} /build/.local/share/svm/0.8.34/solc-0.8.34
-          chmod +x /build/.local/share/svm/0.8.34/solc-0.8.34
+          mkdir -p /build/.local/share/svm/0.8.35
+          cp ${solc_0_8_35} /build/.local/share/svm/0.8.35/solc-0.8.35
+          chmod +x /build/.local/share/svm/0.8.35/solc-0.8.35
         '';
 
         # metadata prepare script depends on contracts prepare script
