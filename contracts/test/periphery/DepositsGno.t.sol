@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {Test} from "dependencies/forge-std-1.16.0/src/Test.sol";
+import {Test} from "dependencies/forge-std-1.16.1/src/Test.sol";
 
 import {GnosisToken} from "test/mock/GnosisToken.sol";
 

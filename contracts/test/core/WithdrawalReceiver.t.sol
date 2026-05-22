@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {Test} from "dependencies/forge-std-1.16.0/src/Test.sol";
+import {Test} from "dependencies/forge-std-1.16.1/src/Test.sol";
 
-import {IERC20} from "dependencies/forge-std-1.16.0/src/interfaces/IERC20.sol";
-import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
-import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+import {IERC20} from "dependencies/forge-std-1.16.1/src/interfaces/IERC20.sol";
+import {IERC165} from "dependencies/forge-std-1.16.1/src/interfaces/IERC165.sol";
+import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.1/src/interfaces/IERC721.sol";
 
 interface IWithdrawalReceiver {
     function validator_key() external view returns (bytes32, bytes16);

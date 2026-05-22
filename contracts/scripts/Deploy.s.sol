@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {Script, console2} from "dependencies/forge-std-1.16.0/src/Script.sol";
+import {Script, console2} from "dependencies/forge-std-1.16.1/src/Script.sol";
 
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
 

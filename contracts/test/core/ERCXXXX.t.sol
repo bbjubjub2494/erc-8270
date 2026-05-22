@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8;
 
-import {Test} from "dependencies/forge-std-1.16.0/src/Test.sol";
-import {stdJson} from "dependencies/forge-std-1.16.0/src/StdJson.sol";
+import {Test} from "dependencies/forge-std-1.16.1/src/Test.sol";
+import {stdJson} from "dependencies/forge-std-1.16.1/src/StdJson.sol";
 
-import {IERC20} from "dependencies/forge-std-1.16.0/src/interfaces/IERC20.sol";
-import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
+import {IERC20} from "dependencies/forge-std-1.16.1/src/interfaces/IERC20.sol";
+import {IERC165} from "dependencies/forge-std-1.16.1/src/interfaces/IERC165.sol";
 import {
     IERC721,
     IERC721Enumerable,
     IERC721Metadata,
     IERC721TokenReceiver
-} from "dependencies/forge-std-1.16.0/src/interfaces/IERC721.sol";
+} from "dependencies/forge-std-1.16.1/src/interfaces/IERC721.sol";
 
 import {IERC5646} from "src/interfaces/IERC5646.sol";
 import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";

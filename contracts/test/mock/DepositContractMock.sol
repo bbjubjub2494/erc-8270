@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8;
 
-import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
+import {IERC165} from "dependencies/forge-std-1.16.1/src/interfaces/IERC165.sol";
 import {IDepositContract} from "src/interfaces/IDepositContract.sol";
 
 // This is a rewrite of the Vyper Eth2.0 deposit contract in Solidity.

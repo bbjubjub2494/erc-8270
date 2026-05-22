@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8;
 
-import {IERC165} from "dependencies/forge-std-1.16.0/src/interfaces/IERC165.sol";
+import {IERC165} from "dependencies/forge-std-1.16.1/src/interfaces/IERC165.sol";
 import {ISBCDepositContract} from "src/interfaces/ISBCDepositContract.sol";
 import {IERC677, IERC677Receiver} from "src/interfaces/IERC677.sol";
 

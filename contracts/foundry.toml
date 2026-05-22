@@ -8,4 +8,4 @@ recursive_deps = true
 remappings_generate = false
 
 [dependencies]
-forge-std = "1.16.0"
+forge-std = "1.16.1"

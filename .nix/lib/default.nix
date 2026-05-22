@@ -29,7 +29,7 @@
 
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "sha256-2cbMk10TAtMsx6PlMd2oaGXwHCy0ZdoOQaMEATyW8BQ=";
+      outputHash = "sha256-VixcA+T/lsEG4APrmCJmWpNJkIGwFgRDkFQWy3kcjBg=";
     };
 
     solc_0_8_34 = pkgs.fetchurl {
