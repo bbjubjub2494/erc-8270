@@ -29,7 +29,7 @@
 
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "sha256-VixcA+T/lsEG4APrmCJmWpNJkIGwFgRDkFQWy3kcjBg=";
+      outputHash = "sha256-HljDzkSgPQiyPhIDSoHRSZdZdt6ds5LlABdaWTivNYw=";
     };
 
     solc_0_8_35 = pkgs.fetchurl {
@@ -59,7 +59,7 @@
         ];
 
         postPatch = ''
-          ln -s ${soldeer-dependencies} contracts/dependencies
+          cp -R ${soldeer-dependencies} contracts/dependencies
 
           mkdir -p /build/.local/share/svm/0.8.35
           cp ${solc_0_8_35} /build/.local/share/svm/0.8.35/solc-0.8.35

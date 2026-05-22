@@ -10,7 +10,7 @@
     "out"
   ],
   "scripts": {
-    "prepare": "node generate.mjs"
+    "prepare": "forge build && node generate.mjs"
   },
   "keywords": [
     "solidity",
