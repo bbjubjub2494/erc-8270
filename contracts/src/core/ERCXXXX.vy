@@ -335,7 +335,7 @@ def mint(
     self._mint(initial_owner, token_id)
     self.token_data[token_id].withdrawal_address = withdrawal_address
     self.token_data[token_id].state_fingerprint = keccak256(keccak256("Minted()"))
-    extcall IWithdrawalReceiver(withdrawal_address).set_controller(
+    extcall IWithdrawalReceiver(withdrawal_address).set_validator_key(
         validator_key_hi, validator_key_lo
     )
     return token_id

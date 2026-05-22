@@ -9,7 +9,7 @@ import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.1/src/i
 
 interface IWithdrawalReceiver {
     function validator_key() external view returns (bytes32, bytes16);
-    function set_controller(bytes32 key_hi, bytes16 key_lo) external;
+    function set_validator_key(bytes32 key_hi, bytes16 key_lo) external;
     function _request_withdrawal(bytes8 amount) external payable;
     function _request_consolidation(bytes32 target_key_hi, bytes16 target_key_lo) external payable;
     function _arbitrary_call(address destination, bytes calldata data) external payable;
@@ -31,21 +31,21 @@ contract WithdrawalReceiverTest is Test {
         vm.prank(controller);
         dut = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
         vm.prank(controller);
-        dut.set_controller(validatorKey1Hi, validatorKey1Lo);
+        dut.set_validator_key(validatorKey1Hi, validatorKey1Lo);
     }
 
-    function test_set_controller() public view {
+    function test_set_validator_key() public view {
         (bytes32 hi, bytes16 lo) = dut.validator_key();
         assertEq(hi, validatorKey1Hi);
         assertEq(lo, validatorKey1Lo);
     }
 
-    function test_set_controller_only_controller() public {
+    function test_set_validator_key_only_controller() public {
         vm.prank(controller);
         IWithdrawalReceiver fresh = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
         vm.prank(user);
         vm.expectRevert();
-        fresh.set_controller(validatorKey1Hi, validatorKey1Lo);
+        fresh.set_validator_key(validatorKey1Hi, validatorKey1Lo);
     }
 
     function test_request_withdrawal(uint64 amount) public {

@@ -34,10 +34,10 @@ def validator_key() -> (bytes32, bytes16):
 
 
 @external
-def set_controller(key_hi: bytes32, key_lo: bytes16):
+def set_validator_key(hi: bytes32, lo: bytes16):
     assert msg.sender == CONTROLLER
-    self.validator_key_hi = key_hi
-    self.validator_key_lo = key_lo
+    self.validator_key_hi = hi
+    self.validator_key_lo = lo
 
 
 @external
