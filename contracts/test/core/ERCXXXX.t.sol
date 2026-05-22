@@ -327,14 +327,16 @@ contract ERCXXXXTest is Test {
 
     // ERC-5646 //
 
-    struct NativeBalancePulled {
-        bytes32 previousFingerprint;
-    }
-
     struct ConsolidationRequested {
         bytes32 previousFingerprint;
         bytes32 targetKeyHi;
         bytes16 targetKeyLo;
+    }
+
+    struct NativeBalancePulled {
+        bytes32 previousFingerprint;
+        address target;
+        bytes data;
     }
 
     struct ArbitraryCall {
@@ -356,7 +358,8 @@ contract ERCXXXXTest is Test {
         vm.prank(user1);
         dut.pullNativeBalance(id1, user1);
         expected = vm.eip712HashStruct(
-            "NativeBalancePulled(bytes32 previousFingerprint)", abi.encode(NativeBalancePulled(expected))
+            "NativeBalancePulled(bytes32 previousFingerprint, address target, bytes data)",
+            abi.encode(NativeBalancePulled(expected, user1, ""))
         );
         assertEq(dut.getStateFingerprint(id1), expected);
 
@@ -532,7 +535,7 @@ contract ERCXXXXTest is Test {
 
         vm.expectCall(destination, 1 ether, "");
         vm.expectEmit();
-        emit IERCXXXX.PullNativeBalance(id1, destination);
+        emit IERCXXXX.PullNativeBalance(id1, destination, "");
         vm.prank(user1);
         dut.pullNativeBalance(id1, destination);
 
@@ -543,7 +546,8 @@ contract ERCXXXXTest is Test {
 
     function test_arbitrary_call(address target, uint256 value, bytes calldata data) public {
         assumeNotPrecompile(target);
-        assumePayable(target);
+        // WithdrawalReceiver will revert due to access control
+        vm.assume(data.length == 0 || target != dut.withdrawalAddressOf(id1));
 
         vm.expectRevert("ERC-721: not owner or approved");
         hoax(user2, value);
@@ -554,6 +558,25 @@ contract ERCXXXXTest is Test {
         emit IERCXXXX.ArbitraryCall(id1, target, data);
         hoax(user1, value);
         dut.arbitraryCall{value: value}(id1, target, data);
+    }
+
+    function test_pull_native_balance_with_data(address target, bytes calldata data) public {
+        assumeNotPrecompile(target);
+        assumePayable(target);
+        vm.assume(data.length == 0 || target != dut.withdrawalAddressOf(id1));
+        vm.assume(target != address(0));
+
+        vm.deal(dut.withdrawalAddressOf(id1), 1 ether);
+
+        vm.expectRevert("ERC-721: not owner or approved");
+        vm.prank(user2);
+        dut.pullNativeBalance(id1, target, data);
+
+        vm.expectCall(target, 1 ether, data);
+        vm.expectEmit();
+        emit IERCXXXX.PullNativeBalance(id1, target, data);
+        vm.prank(user1);
+        dut.pullNativeBalance(id1, target, data);
     }
 
     // Regression tests //

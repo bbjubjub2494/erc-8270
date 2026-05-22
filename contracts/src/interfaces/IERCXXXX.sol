@@ -9,7 +9,7 @@ interface IERCXXXX is IERC721Enumerable, IERC721Metadata, IERC5646 {
 
     event ArbitraryCall(uint256 indexed tokenId, address target, bytes data);
 
-    event PullNativeBalance(uint256 indexed tokenId, address destination);
+    event PullNativeBalance(uint256 indexed tokenId, address target, bytes data);
 
     /**
      * @notice Prepare a token intended to wrap the given validator.
@@ -70,11 +70,25 @@ interface IERCXXXX is IERC721Enumerable, IERC721Metadata, IERC5646 {
     function requestSwitchToCompounding(uint256 tokenId) external payable;
 
     /**
+     * @notice Send the ether balance of the withdrawal address the the caller
+     * @param tokenId The ERC-721 id of the token.
+     */
+    function pullNativeBalance(uint256 tokenId) external;
+
+    /**
      * @notice Take the ether balance of the withdrawal address.
      * @param tokenId The ERC-721 id of the token.
-     * @param destination the account to send the ether to.
+     * @param target the account to send the ether to.
      */
-    function pullNativeBalance(uint256 tokenId, address destination) external;
+    function pullNativeBalance(uint256 tokenId, address target) external;
+
+    /**
+     * @notice Take the ether balance of the withdrawal address.
+     * @param tokenId The ERC-721 id of the token.
+     * @param target the account to send the ether to.
+     * @param data calldata to use for the transfer.
+     */
+    function pullNativeBalance(uint256 tokenId, address target, bytes calldata data) external;
 
     /**
      * @notice Perform an arbitrary EVM call from the withdrawal address.

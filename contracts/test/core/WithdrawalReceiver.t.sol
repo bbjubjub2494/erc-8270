@@ -13,7 +13,7 @@ interface IWithdrawalReceiver {
     function _request_withdrawal(bytes8 amount) external payable;
     function _request_consolidation(bytes32 target_key_hi, bytes16 target_key_lo) external payable;
     function _arbitrary_call(address destination, bytes calldata data) external payable;
-    function _pull_native_balance(address destination) external;
+    function _pull_native_balance(address destination, bytes calldata data) external;
 }
 
 contract WithdrawalReceiverTest is Test {
@@ -80,14 +80,15 @@ contract WithdrawalReceiverTest is Test {
         dut._request_consolidation(validatorKey1Hi, validatorKey1Lo);
     }
 
-    function test_pull_native_balance() public {
+    function test_pull_native_balance(bytes calldata data) public {
         vm.deal(address(dut), 1 ether);
         vm.prank(user);
         vm.expectRevert();
-        dut._pull_native_balance(user);
+        dut._pull_native_balance(user, data);
 
         vm.prank(controller);
-        dut._pull_native_balance(user);
+        vm.expectCall(user, address(dut).balance, data);
+        dut._pull_native_balance(user, data);
         assertEq(address(dut).balance, 0);
         assertEq(user.balance, 1 ether);
     }
@@ -119,6 +120,6 @@ contract WithdrawalReceiverTest is Test {
         vm.deal(address(dut), 1 ether);
         vm.prank(controller);
         vm.expectRevert();
-        dut._pull_native_balance(destination);
+        dut._pull_native_balance(destination, "");
     }
 }

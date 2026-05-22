@@ -63,14 +63,14 @@ def _request_consolidation(target_key_hi: bytes32, target_key_lo: bytes16):
 
 
 @external
-def _pull_native_balance(destination: address):
+def _pull_native_balance(target: address, data: Bytes[2**16]):
     assert msg.sender == CONTROLLER
-    raw_call(destination, b"", value=self.balance)
+    raw_call(target, data, value=self.balance)
 
 
 @external
 @payable
-def _arbitrary_call(target: address, data: Bytes[65536]):
+def _arbitrary_call(target: address, data: Bytes[2**16]):
     assert msg.sender == CONTROLLER
     raw_call(target, data, value=msg.value)
 

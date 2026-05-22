@@ -32,7 +32,8 @@ event ArbitraryCall:
 
 event PullNativeBalance:
     token_id: indexed(uint256)
-    destination: address
+    target: address
+    data: Bytes[2**16]
 
 
 # this is just to silence a warning since we will never mint this many.
@@ -415,18 +416,20 @@ def requestSwitchToCompounding(token_id: uint256):
 
 
 @external
-def pullNativeBalance(token_id: uint256, destination: address = msg.sender):
+def pullNativeBalance(token_id: uint256, target: address = msg.sender, data: Bytes[2**16] = b""):
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
-    assert destination != empty(address), "ERC-XXXX: pull native balance to zero"
+    assert target != empty(address), "ERC-XXXX: pull native balance to zero"
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
-            keccak256("NativeBalancePulled(bytes32 previousFingerprint)"),
+            keccak256("NativeBalancePulled(bytes32 previousFingerprint,address target,bytes data)"),
             self.token_data[token_id].state_fingerprint,
+            target,
+            keccak256(data),
         )
     )
-    extcall self.withdrawal_receiver(token_id)._pull_native_balance(destination)
-    log PullNativeBalance(token_id=token_id, destination=destination)
+    extcall self.withdrawal_receiver(token_id)._pull_native_balance(target, data)
+    log PullNativeBalance(token_id=token_id, target=target, data=data)
 
 
 @external
