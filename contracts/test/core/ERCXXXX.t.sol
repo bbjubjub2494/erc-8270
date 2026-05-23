@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: CC0-1.0
+
 pragma solidity ^0.8;
 
 import {Test} from "dependencies/forge-std-1.16.1/src/Test.sol";

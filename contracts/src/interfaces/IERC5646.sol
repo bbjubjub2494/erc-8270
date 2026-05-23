@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: CC-0
+// SPDX-License-Identifier: CC0-1.0
+
 pragma solidity ^0.8;
 
 import {IERC165} from "dependencies/forge-std-1.16.1/src/interfaces/IERC165.sol";
