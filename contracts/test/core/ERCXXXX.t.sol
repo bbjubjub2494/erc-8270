@@ -547,39 +547,32 @@ contract ERCXXXXTest is Test {
         dut.pullNativeBalance(id1, address(0));
     }
 
-    function test_arbitrary_call(address target, uint256 value, bytes calldata data) public {
-        assumeNotPrecompile(target);
-        // WithdrawalReceiver will revert due to access control
-        vm.assume(data.length == 0 || target != dut.withdrawalAddressOf(id1));
-
+    function test_arbitrary_call(uint128 value, bytes calldata data, bytes calldata returndata) public {
         vm.expectRevert("ERC-721: not owner or approved");
         hoax(user2, value);
-        dut.arbitraryCall{value: value}(id1, target, data);
+        dut.arbitraryCall{value: value}(id1, user2, data);
 
-        vm.expectCall(target, value, data);
+        vm.expectCall(user2, value, data);
+        vm.mockCall(user2, data, returndata);
         vm.expectEmit();
-        emit IERCXXXX.ArbitraryCall(id1, target, data);
+        emit IERCXXXX.ArbitraryCall(id1, user2, data);
         hoax(user1, value);
-        dut.arbitraryCall{value: value}(id1, target, data);
+        dut.arbitraryCall{value: value}(id1, user2, data);
     }
 
-    function test_pull_native_balance_with_data(address target, bytes calldata data) public {
-        assumeNotPrecompile(target);
-        assumePayable(target);
-        vm.assume(data.length == 0 || target != dut.withdrawalAddressOf(id1));
-        vm.assume(target != address(0));
-
+    function test_pull_native_balance_with_data(bytes calldata data, bytes calldata returndata) public {
         vm.deal(dut.withdrawalAddressOf(id1), 1 ether);
 
         vm.expectRevert("ERC-721: not owner or approved");
         vm.prank(user2);
-        dut.pullNativeBalance(id1, target, data);
+        dut.pullNativeBalance(id1, user2, data);
 
-        vm.expectCall(target, 1 ether, data);
+        vm.expectCall(user2, 1 ether, data);
+        vm.mockCall(user2, data, returndata);
         vm.expectEmit();
-        emit IERCXXXX.PullNativeBalance(id1, target, data);
+        emit IERCXXXX.PullNativeBalance(id1, user2, data);
         vm.prank(user1);
-        dut.pullNativeBalance(id1, target, data);
+        dut.pullNativeBalance(id1, user2, data);
     }
 
     // Regression tests //
