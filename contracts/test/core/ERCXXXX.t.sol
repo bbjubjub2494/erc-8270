@@ -29,13 +29,15 @@ contract ERCXXXXTest is Test {
     bytes32 constant validatorKey1Hi = 0x00102030405060708090a0b0c0d0e0f112131415161718191a1b1c1d1e1f2232;
     bytes16 constant validatorKey1Lo = 0x425262728292a2b2c2d2e2f334353637;
 
+    string constant imageUrl = "ipfs://yyyyyy";
+
     IERCXXXX dut;
 
     uint256 id1;
 
     function setUp() external {
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        dut = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(wrCode)));
+        dut = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(imageUrl, wrCode)));
 
         assertEq(dut.totalSupply(), 0);
         vm.expectRevert("ERC-721: invalid index");

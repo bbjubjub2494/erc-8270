@@ -23,6 +23,14 @@ contract DeployScript is Script {
         return predicted;
     }
 
+    function getCid() internal returns (string memory) {
+	    string[] memory args = new string[](3);
+	    args[0] = "node";
+	    args[1] = "-e";
+	    args[2] = "console.log(require('@erc-xxxx/favicons').logoCid)";
+	    return string(vm.ffi(args));
+    }
+
     function setUp() external {
         setChain(
             "chiado", ChainData({name: "Gnosis Chiado Testnet", chainId: 10200, rpcUrl: "https://rpc.chiadochain.net"})
@@ -30,8 +38,11 @@ contract DeployScript is Script {
     }
 
     function run() external {
+	string memory cid = getCid();
+	string memory imageUrl = string.concat("ipfs://", cid);
+
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERCXXXX.vy"), abi.encode(wrCode));
+        bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERCXXXX.vy"), abi.encode(imageUrl, wrCode));
         address erc = deployDeterministic(ercCode);
         console2.log("Deployed ERCXXXX at", erc);
 

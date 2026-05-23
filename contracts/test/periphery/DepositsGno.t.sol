@@ -25,6 +25,8 @@ contract DepositsTest is Test {
     bytes constant signature =
         hex"00102030405060708090a0b0c0d0e0f112131415161718191a1b1c1d1e1f2232425262728292a2b2c2d2e2f33435363738393a3b3c3d3e3f445464748494a4b4c4d4e4f5565758595a5b5c5d5e5f66768696a6b6c6d6e6f778797a7b7c7d7e7f"; // pwn cyclic -n 2 -a 0123456789abcdef 192
 
+    string constant imageUrl = "ipfs://yyyyyy";
+
     uint256 id1;
 
     IERCXXXX ercxxxx;
@@ -36,7 +38,7 @@ contract DepositsTest is Test {
         deal(address(token), address(this), 100 ether);
         depositContract = new SBCDepositContractMock(address(token));
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        ercxxxx = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(wrCode)));
+        ercxxxx = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(imageUrl, wrCode)));
         vm.prank(user1);
         id1 = ercxxxx.mint(validatorKey1Hi, validatorKey1Lo, user1);
 

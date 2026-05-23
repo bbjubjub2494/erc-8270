@@ -50,11 +50,12 @@ struct TokenData:
 
 
 next_id: public(uint256)
+image_url: String[128]  # 4 slots
 tokens_by_owner: HashMap[address, DynArray[uint256, MAX_ID]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
 
 # this puts the unused 0th element at 0xfc and the first NFT at 0x100
-_padding: bytes32[249]
+_padding: bytes32[244]
 token_data: TokenData[MAX_ID]
 
 WITHDRAWAL_RECEIVER_IMPL: immutable(address)
@@ -76,9 +77,10 @@ def _unpack(index_and_owner: uint256) -> (uint96, address):
 
 
 @deploy
-def __init__(withdrawal_receiver_code: Bytes[49152]):
+def __init__(image_url: String[128], withdrawal_receiver_code: Bytes[49152]):
     WITHDRAWAL_RECEIVER_IMPL = raw_create(withdrawal_receiver_code)
     self.next_id = 1
+    self.image_url = image_url
 
 
 ### ERC-165 ###
@@ -128,10 +130,14 @@ def tokenURI(token_id: uint256) -> String[2**16]:
         '",',
         """
     "description": "Transferable Beacon Chain Withdrawal Credentials",
-    "image": "TODO",
-    "attributes": [{
-        "trait_type": "Validator Key",
-        "value": "0x"""
+    "image":"""
+        ,
+        '"',
+        self.image_url,
+        '",',
+        """ "attributes": [{
+    "trait_type": "Validator Key",
+    "value": "0x"""
         ,
         fmt.bytes32_to_hex(key_hi),
         fmt.bytes16_to_hex(key_lo),
