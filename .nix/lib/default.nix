@@ -45,7 +45,7 @@
         inherit src;
         npmDeps = pkgs.fetchNpmDeps {
           inherit src;
-          hash = "sha256-xTxsP4syF/UBkpfyFBR4l/635DMqUifeTcwLFUS6gnA=";
+          hash = "sha256-2gOk6qcMX5UaHLXfsrGoizRGEcHDv4NhmS8pcvXBZEg=";
         };
 
         buildInputs = [
