@@ -6,7 +6,7 @@ import {Test} from "dependencies/forge-std-1.16.1/src/Test.sol";
 
 import {GnosisToken} from "test/mock/GnosisToken.sol";
 
-import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+import {IERC8270} from "src/interfaces/IERC8270.sol";
 import {IDepositContract} from "src/interfaces/IDepositContract.sol";
 import {DepositsBase} from "src/periphery/DepositsBase.sol";
 import {DepositsGno} from "src/periphery/DepositsGno.sol";
@@ -29,7 +29,7 @@ contract DepositsTest is Test {
 
     uint256 id1;
 
-    IERCXXXX ercxxxx;
+    IERC8270 erc8270;
     GnosisToken token;
     DepositsGno dut;
 
@@ -38,11 +38,11 @@ contract DepositsTest is Test {
         deal(address(token), address(this), 100 ether);
         depositContract = new SBCDepositContractMock(address(token));
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        ercxxxx = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(imageUrl, wrCode)));
+        erc8270 = IERC8270(deployCode("src/core/ERC8270.vy", abi.encode(imageUrl, wrCode)));
         vm.prank(user1);
-        id1 = ercxxxx.mint(validatorKey1Hi, validatorKey1Lo, user1);
+        id1 = erc8270.mint(validatorKey1Hi, validatorKey1Lo, user1);
 
-        dut = new DepositsGno(ercxxxx, depositContract);
+        dut = new DepositsGno(erc8270, depositContract);
     }
 
     function expectDeposit(bytes memory validatorKey, bytes32 withdrawalCredentials, bytes memory sig, uint256 amount)
@@ -63,7 +63,7 @@ contract DepositsTest is Test {
     function test_frontrunnable_deposit() public {
         uint256 amount = 1 ether;
         bytes32 withdrawalCredentials =
-            bytes32(bytes1(uint8(1))) | bytes32(uint256(uint160(ercxxxx.withdrawalAddressOf(id1))));
+            bytes32(bytes1(uint8(1))) | bytes32(uint256(uint160(erc8270.withdrawalAddressOf(id1))));
         bytes32 depositDataRoot =
             depositContract._computeDepositDataRoot(validatorKey1, signature, withdrawalCredentials, amount);
         token.approve(address(dut), amount);
@@ -90,7 +90,7 @@ contract DepositsTest is Test {
     function test_protected_deposit() public {
         uint256 amount = 1 ether;
         bytes32 withdrawalCredentials =
-            bytes32(bytes1(uint8(1))) | bytes32(uint256(uint160(ercxxxx.withdrawalAddressOf(id1))));
+            bytes32(bytes1(uint8(1))) | bytes32(uint256(uint160(erc8270.withdrawalAddressOf(id1))));
         bytes32 depositDataRoot =
             depositContract._computeDepositDataRoot(validatorKey1, signature, withdrawalCredentials, amount);
         bytes32 depositRoot = depositContract.get_deposit_root();
@@ -103,7 +103,7 @@ contract DepositsTest is Test {
     function test_protected_deposit_wrongRoot() public {
         uint256 amount = 1 ether;
         bytes32 withdrawalCredentials =
-            bytes32(bytes1(uint8(1))) | bytes32(uint256(uint160(ercxxxx.withdrawalAddressOf(id1))));
+            bytes32(bytes1(uint8(1))) | bytes32(uint256(uint160(erc8270.withdrawalAddressOf(id1))));
         bytes32 depositDataRoot =
             depositContract._computeDepositDataRoot(validatorKey1, signature, withdrawalCredentials, amount);
         bytes32 wrongRoot = bytes32(uint256(12345));

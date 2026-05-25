@@ -39,13 +39,13 @@
   in
     pkgs.buildNpmPackage (
       {
-        pname = "erc-xxxx-${npmWorkspace}";
+        pname = "erc-8270-${npmWorkspace}";
         version = "1.0.0";
 
         inherit src;
         npmDeps = pkgs.fetchNpmDeps {
           inherit src;
-          hash = "sha256-2gOk6qcMX5UaHLXfsrGoizRGEcHDv4NhmS8pcvXBZEg=";
+          hash = "sha256-Y+Ect9vbSL4ObBYk5MB9XARCfkNEYU65mEHtE5Ft+eE=";
         };
 
         buildInputs = [

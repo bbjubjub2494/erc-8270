@@ -1,4 +1,4 @@
-# Web Frontend for ERC-XXXX
+# Web Frontend for ERC-8270
 
 Web frontend allowing to view an manage tokens.
 

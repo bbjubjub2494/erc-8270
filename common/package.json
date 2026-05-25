@@ -1,7 +1,7 @@
 {
-  "name": "@erc-xxxx/common",
+  "name": "@erc-8270/common",
   "version": "1.0.0",
-  "description": "JS utilities for ERC-XXXX",
+  "description": "JS utilities for ERC-8270",
   "type": "module",
   "main": "src/index.js",
   "files": [
@@ -14,7 +14,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@erc-xxxx/contracts": "*",
+    "@erc-8270/contracts": "*",
     "ethers": "^6.16.0"
   }
 }

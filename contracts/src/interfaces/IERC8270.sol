@@ -5,7 +5,7 @@ pragma solidity ^0.8;
 import {IERC721Enumerable, IERC721Metadata} from "dependencies/forge-std-1.16.1/src/interfaces/IERC721.sol";
 import {IERC5646} from "src/interfaces/IERC5646.sol";
 
-interface IERCXXXX is IERC721Enumerable, IERC721Metadata, IERC5646 {
+interface IERC8270 is IERC721Enumerable, IERC721Metadata, IERC5646 {
     event ConsolidationRequest(uint256 indexed tokenId, bytes32 targetKeyHi, bytes16 targetKeyLo);
 
     event ArbitraryCall(uint256 indexed tokenId, address target, bytes data);

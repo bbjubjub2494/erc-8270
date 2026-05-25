@@ -1,12 +1,12 @@
 import { ethers } from 'ethers';
-import { ERCXXXXABI } from '@erc-xxxx/contracts';
+import { ERC8270ABI } from '@erc-8270/contracts';
 import { TRANSFER_TOPIC, getExplorerUrl } from './utils/constants.js'
 import { formatAddress, showError, showSuccess } from './utils/ui.js';
 import { validateValidatorKey, validateAddress } from './utils/validation.js';
 import { waitForTransaction } from './utils/transaction.js';
 import { autoConnect, createWalletState, connectWallet } from './utils/wallet.js';
 
-const abi = new ethers.Interface(ERCXXXXABI);
+const abi = new ethers.Interface(ERC8270ABI);
 
 const state = createWalletState();
 

@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
-import { ERCXXXXABI, DepositsABI, DepositsGnoABI } from '@erc-xxxx/contracts';
-import { fetchBeaconChainData as commonFetchBeaconChainData, fetchTokenData as commonFetchTokenData, NETWORKS, SBC_DEPOSIT_CONTRACT_ABI, ERC20ABI } from '@erc-xxxx/common';
+import { ERC8270ABI, DepositsABI, DepositsGnoABI } from '@erc-8270/contracts';
+import { fetchBeaconChainData as commonFetchBeaconChainData, fetchTokenData as commonFetchTokenData, NETWORKS, SBC_DEPOSIT_CONTRACT_ABI, ERC20ABI } from '@erc-8270/common';
 import { waitForTransaction, waitForBatch } from './utils/transaction.js';
 
 let currentNetwork = NETWORKS.chiado;
@@ -243,7 +243,7 @@ async function pullExecutionLayerBalance() {
     const tokenId = document.getElementById('tokenInput').value.trim();
     const button = document.getElementById('pullExecutionLayerBalanceButton');
     
-    const iface = new ethers.Interface(ERCXXXXABI);
+    const iface = new ethers.Interface(ERC8270ABI);
 
     if (!tokenId) {
         alert('Please enter a token ID first');
@@ -343,7 +343,7 @@ async function pullNative() {
     const tokenId = document.getElementById('tokenInput').value.trim();
     const button = document.getElementById('claimNativeButton');
     
-    const iface = new ethers.Interface(ERCXXXXABI);
+    const iface = new ethers.Interface(ERC8270ABI);
 
     if (!tokenId) {
         alert('Please enter a token ID first');
@@ -410,7 +410,7 @@ async function requestFullWithdrawal() {
     const tokenId = document.getElementById('tokenInput').value.trim();
     const withdrawalButton = document.getElementById('requestWithdrawalButton');
 
-    const iface = new ethers.Interface(ERCXXXXABI);
+    const iface = new ethers.Interface(ERC8270ABI);
 
     if (!tokenId) {
         alert('Please enter a token ID first');
@@ -479,7 +479,7 @@ async function requestPartialWithdrawal() {
     const amountInput = document.getElementById('partialAmountInput').value.trim();
     const partialButton = document.getElementById('requestPartialButton');
 
-    const iface = new ethers.Interface(ERCXXXXABI);
+    const iface = new ethers.Interface(ERC8270ABI);
 
     if (!tokenId) {
         alert('Please enter a token ID first');
@@ -559,7 +559,7 @@ async function switchToCompounding() {
     const tokenId = document.getElementById('tokenInput').value.trim();
     const button = document.getElementById('switchToCompoundingButton');
 
-    const iface = new ethers.Interface(ERCXXXXABI);
+    const iface = new ethers.Interface(ERC8270ABI);
 
     if (!tokenId) {
         alert('Please enter a token ID first');

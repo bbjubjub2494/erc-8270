@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8;
 
-import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+import {IERC8270} from "src/interfaces/IERC8270.sol";
 
 abstract contract DepositsBase {
     error DepositRootMismatch();
     error Uint64Overflow();
 
-    IERCXXXX public immutable ERCXXXX;
+    IERC8270 public immutable ERC8270;
 
-    constructor(IERCXXXX _ercxxxx) {
-        ERCXXXX = _ercxxxx;
+    constructor(IERC8270 _erc8270) {
+        ERC8270 = _erc8270;
     }
 
     function _toUint64Checked(uint256 v256) internal pure returns (uint64) {
@@ -47,7 +47,7 @@ abstract contract DepositsBase {
             bytes32 depositDataRoot
         )
     {
-        (bytes32 validatorKeyHi, bytes16 validatorKeyLo) = ERCXXXX.validatorKeyOf(id);
+        (bytes32 validatorKeyHi, bytes16 validatorKeyLo) = ERC8270.validatorKeyOf(id);
         validatorKey = bytes.concat(validatorKeyHi, validatorKeyLo);
         withdrawalCredential = new bytes(32);
         signature = new bytes(96);

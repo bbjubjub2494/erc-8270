@@ -3,7 +3,7 @@ pragma solidity ^0.8;
 
 import {Script, console2} from "dependencies/forge-std-1.16.1/src/Script.sol";
 
-import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+import {IERC8270} from "src/interfaces/IERC8270.sol";
 
 contract DeployScript is Script {
     address immutable DEPLOYMENT_PROXY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
@@ -27,7 +27,7 @@ contract DeployScript is Script {
 	    string[] memory args = new string[](3);
 	    args[0] = "node";
 	    args[1] = "-e";
-	    args[2] = "console.log(require('@erc-xxxx/favicons').logoCid)";
+	    args[2] = "console.log(require('@erc-8270/favicons').logoCid)";
 	    return string(vm.ffi(args));
     }
 
@@ -42,9 +42,9 @@ contract DeployScript is Script {
 	string memory imageUrl = string.concat("ipfs://", cid);
 
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERCXXXX.vy"), abi.encode(imageUrl, wrCode));
+        bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERC8270.vy"), abi.encode(imageUrl, wrCode));
         address erc = deployDeterministic(ercCode);
-        console2.log("Deployed ERCXXXX at", erc);
+        console2.log("Deployed ERC8270 at", erc);
 
         address token;
         address depositContract = 0x00000000219ab540356cBB839Cbe05303d7705Fa;

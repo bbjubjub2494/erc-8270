@@ -1,13 +1,13 @@
 import { ethers } from 'ethers';
-import { ERCXXXXABI, DepositsABI, DepositsGnoABI } from '@erc-xxxx/contracts';
+import { ERC8270ABI, DepositsABI, DepositsGnoABI } from '@erc-8270/contracts';
 import { ERC20_ABI, getExplorerUrl } from './utils/constants.js';
 import { formatAddress, showError, showSuccess } from './utils/ui.js';
 import { validateHexField } from './utils/validation.js';
 import { waitForTransaction, waitForBatch } from './utils/transaction.js';
 import { autoConnect, createWalletState, connectWallet, checkWalletCapabilities } from './utils/wallet.js';
-import { fetchWithdrawalAddress as commonFetchWithdrawalAddress } from '@erc-xxxx/common';
+import { fetchWithdrawalAddress as commonFetchWithdrawalAddress } from '@erc-8270/common';
 
-const abi = new ethers.Interface(ERCXXXXABI);
+const abi = new ethers.Interface(ERC8270ABI);
 
 const state = createWalletState();
 let parsedDepositData = null;

@@ -1,4 +1,4 @@
-import { getExplorerUrl as commonGetExplorerUrl } from '@erc-xxxx/common';
+import { getExplorerUrl as commonGetExplorerUrl } from '@erc-8270/common';
 
 export const ERC20_ABI = [
     {

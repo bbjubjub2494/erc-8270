@@ -1,4 +1,4 @@
-import { NETWORKS } from '@erc-xxxx/common';
+import { NETWORKS } from '@erc-8270/common';
 
 export function autoConnect(connectWallet) {
     if (typeof window.ethereum !== 'undefined') {

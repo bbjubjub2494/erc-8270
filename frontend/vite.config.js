@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { distDir as faviconsDir } from '@erc-xxxx/favicons';
+import { distDir as faviconsDir } from '@erc-8270/favicons';
 
 export default defineConfig({
     publicDir: faviconsDir,

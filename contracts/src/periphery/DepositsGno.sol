@@ -6,16 +6,16 @@ import {DepositsBase} from "src/periphery/DepositsBase.sol";
 
 import {IERC677} from "src/interfaces/IERC677.sol";
 import {ISBCDepositContract} from "src/interfaces/ISBCDepositContract.sol";
-import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+import {IERC8270} from "src/interfaces/IERC8270.sol";
 
-/// @title ERCXXXX: Deposit Helper — Gnosis variant
+/// @title ERC8270: Deposit Helper — Gnosis variant
 /// @author bbjubjub.eth
-/// @notice Deposit helper for ERC-XXXX wrapped validators.
+/// @notice Deposit helper for ERC-8270 wrapped validators.
 contract DepositsGno is DepositsBase {
     IERC677 public immutable GNO_TOKEN;
     ISBCDepositContract public immutable DEPOSIT_CONTRACT;
 
-    constructor(IERCXXXX _ercxxxx, ISBCDepositContract _depositContract) DepositsBase(_ercxxxx) {
+    constructor(IERC8270 _erc8270, ISBCDepositContract _depositContract) DepositsBase(_erc8270) {
         DEPOSIT_CONTRACT = _depositContract;
         GNO_TOKEN = _depositContract.stake_token();
     }
@@ -56,8 +56,8 @@ contract DepositsGno is DepositsBase {
     function _deposit(uint256 id, bool compounding, bytes calldata signature, bytes32 depositDataRoot, uint256 amount)
         private
     {
-        address withdrawalAddress = ERCXXXX.withdrawalAddressOf(id);
-        (bytes32 validatorKeyHi, bytes16 validatorKeyLo) = ERCXXXX.validatorKeyOf(id);
+        address withdrawalAddress = ERC8270.withdrawalAddressOf(id);
+        (bytes32 validatorKeyHi, bytes16 validatorKeyLo) = ERC8270.validatorKeyOf(id);
         bytes memory validatorKey = bytes.concat(validatorKeyHi, validatorKeyLo);
         bytes32 withdrawalCredential = _makeWithdrawalCredential(withdrawalAddress, compounding);
         _deposit(amount, bytes.concat(withdrawalCredential, validatorKey, signature, depositDataRoot));

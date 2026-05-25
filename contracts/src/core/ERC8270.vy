@@ -106,13 +106,13 @@ def supportsInterface(interface_id: bytes4) -> bool:
 @external
 @view
 def name() -> String[29]:
-    return "ERC-XXXX Wrapped Beacon Stake"
+    return "ERC-8270 Wrapped Beacon Stake"
 
 
 @external
 @view
 def symbol() -> String[7]:
-    return "ERCXXXX"
+    return "ERC8270"
 
 
 @external
@@ -124,7 +124,7 @@ def tokenURI(token_id: uint256) -> String[2**16]:
     key_hi, key_lo = staticcall receiver.validator_key()
     return concat(
         """data:application/json,{
-    "name": "ERC-XXXX Token #"""
+    "name": "ERC-8270 Token #"""
         ,
         uint2str(token_id),
         '",',
@@ -313,7 +313,7 @@ def getStateFingerprint(token_id: uint256) -> bytes32:
     return state_fingerprint
 
 
-## ERC-XXXX ##
+## ERC-8270 ##
 
 @internal
 @view
@@ -334,7 +334,7 @@ def mint(
         revert_on_failure=False,
         salt=keccak256(abi_encode(validator_key_hi, validator_key_lo, initial_owner)),
     )
-    assert withdrawal_address != empty(address), "ERC-XXXX: already minted"
+    assert withdrawal_address != empty(address), "ERC-8270: already minted"
 
     token_id: uint256 = self.next_id
     self.next_id = token_id + 1
@@ -365,7 +365,7 @@ def withdrawalAddressOf(token_id: uint256) -> address:
 @payable
 def requestPartialWithdrawal(token_id: uint256, amount: uint64):
     self.check_allowed(token_id, self._owner(token_id))
-    assert amount != 0, "ERC-XXXX: zero partial withdrawal amount"
+    assert amount != 0, "ERC-8270: zero partial withdrawal amount"
     extcall self.withdrawal_receiver(token_id)._request_withdrawal(
         convert(amount, bytes8),
         value=msg.value,
@@ -425,7 +425,7 @@ def requestSwitchToCompounding(token_id: uint256):
 def pullNativeBalance(token_id: uint256, target: address = msg.sender, data: Bytes[2**16] = b""):
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
-    assert target != empty(address), "ERC-XXXX: pull native balance to zero"
+    assert target != empty(address), "ERC-8270: pull native balance to zero"
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
             keccak256("NativeBalancePulled(bytes32 previousFingerprint,address target,bytes data)"),

@@ -15,11 +15,11 @@ import {
 } from "dependencies/forge-std-1.16.1/src/interfaces/IERC721.sol";
 
 import {IERC5646} from "src/interfaces/IERC5646.sol";
-import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+import {IERC8270} from "src/interfaces/IERC8270.sol";
 
 using stdJson for string;
 
-contract ERCXXXXTest is Test {
+contract ERC8270Test is Test {
     address constant WITHDRAWAL_REQUESTS = 0x00000961Ef480Eb55e80D19ad83579A64c007002; // EIP-7002 contract
     address constant CONSOLIDATION_REQUESTS = 0x0000BBdDc7CE488642fb579F8B00f3a590007251; // EIP-7251 contract
 
@@ -31,13 +31,13 @@ contract ERCXXXXTest is Test {
 
     string constant imageUrl = "ipfs://yyyyyy";
 
-    IERCXXXX dut;
+    IERC8270 dut;
 
     uint256 id1;
 
     function setUp() external {
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        dut = IERCXXXX(deployCode("src/core/ERCXXXX.vy", abi.encode(imageUrl, wrCode)));
+        dut = IERC8270(deployCode("src/core/ERC8270.vy", abi.encode(imageUrl, wrCode)));
 
         assertEq(dut.totalSupply(), 0);
         vm.expectRevert("ERC-721: invalid index");
@@ -75,8 +75,8 @@ contract ERCXXXXTest is Test {
     // ERC-721 Metadata //
 
     function test_metadata() external view {
-        assertEq(dut.name(), "ERC-XXXX Wrapped Beacon Stake");
-        assertEq(dut.symbol(), "ERCXXXX");
+        assertEq(dut.name(), "ERC-8270 Wrapped Beacon Stake");
+        assertEq(dut.symbol(), "ERC8270");
     }
 
     function test_token_uri_reverts_nonexistent() external {
@@ -97,7 +97,7 @@ contract ERCXXXXTest is Test {
             mcopy(add(buf, 32), add(add(buf, 32), mload(expectedPrefix)), jsonlength)
             mstore(buf, jsonlength)
         }
-        assertEq(buf.readString(".name"), "ERC-XXXX Token #1");
+        assertEq(buf.readString(".name"), "ERC-8270 Token #1");
         assertEq(buf.readString(".attributes[0].trait_type"), "Validator Key");
         assertEq(vm.parseBytes(buf.readString(".attributes[0].value")), bytes.concat(validatorKey1Hi, validatorKey1Lo));
         assertEq(buf.readString(".attributes[1].trait_type"), "Withdrawal Address");
@@ -129,7 +129,7 @@ contract ERCXXXXTest is Test {
 
     function test_mint_already_minted() external {
         // same user and validator, should fail due to create2 collision
-        vm.expectRevert("ERC-XXXX: already minted");
+        vm.expectRevert("ERC-8270: already minted");
         dut.mint(validatorKey1Hi, validatorKey1Lo, user1);
     }
 
@@ -407,7 +407,7 @@ contract ERCXXXXTest is Test {
         assertEq(dut.getStateFingerprint(id1), expected);
     }
 
-    // ERC-XXXX //
+    // ERC-8270 //
 
     function _mockQueryFee(address systemContract, uint256 fee) internal {
         vm.mockCall(systemContract, bytes(""), abi.encode(fee));
@@ -475,7 +475,7 @@ contract ERCXXXXTest is Test {
         uint256 fee = 1 wei;
 
         hoax(user1, 1 ether);
-        vm.expectRevert("ERC-XXXX: zero partial withdrawal amount");
+        vm.expectRevert("ERC-8270: zero partial withdrawal amount");
         dut.requestPartialWithdrawal{value: fee}(id1, 0);
     }
 
@@ -484,7 +484,7 @@ contract ERCXXXXTest is Test {
 
         _mockConsolidationRequest(fee, validatorKey1Hi, validatorKey1Lo);
         vm.expectEmit();
-        emit IERCXXXX.ConsolidationRequest(id1, validatorKey1Hi, validatorKey1Lo);
+        emit IERC8270.ConsolidationRequest(id1, validatorKey1Hi, validatorKey1Lo);
         hoax(user1, 1 ether);
         dut.requestSwitchToCompounding{value: 2}(id1);
 
@@ -507,7 +507,7 @@ contract ERCXXXXTest is Test {
 
         _mockConsolidationRequest(fee, validatorKey2Hi, validatorKey2Lo);
         vm.expectEmit();
-        emit IERCXXXX.ConsolidationRequest(id1, validatorKey2Hi, validatorKey2Lo);
+        emit IERC8270.ConsolidationRequest(id1, validatorKey2Hi, validatorKey2Lo);
         hoax(user1, 1 ether);
         dut.requestConsolidation{value: 2}(id1, validatorKey2Hi, validatorKey2Lo);
 
@@ -538,11 +538,11 @@ contract ERCXXXXTest is Test {
 
         vm.expectCall(destination, 1 ether, "");
         vm.expectEmit();
-        emit IERCXXXX.PullNativeBalance(id1, destination, "");
+        emit IERC8270.PullNativeBalance(id1, destination, "");
         vm.prank(user1);
         dut.pullNativeBalance(id1, destination);
 
-        vm.expectRevert("ERC-XXXX: pull native balance to zero");
+        vm.expectRevert("ERC-8270: pull native balance to zero");
         vm.prank(user1);
         dut.pullNativeBalance(id1, address(0));
     }
@@ -555,7 +555,7 @@ contract ERCXXXXTest is Test {
         vm.expectCall(user2, value, data);
         vm.mockCall(user2, data, returndata);
         vm.expectEmit();
-        emit IERCXXXX.ArbitraryCall(id1, user2, data);
+        emit IERC8270.ArbitraryCall(id1, user2, data);
         hoax(user1, value);
         dut.arbitraryCall{value: value}(id1, user2, data);
     }
@@ -570,7 +570,7 @@ contract ERCXXXXTest is Test {
         vm.expectCall(user2, 1 ether, data);
         vm.mockCall(user2, data, returndata);
         vm.expectEmit();
-        emit IERCXXXX.PullNativeBalance(id1, user2, data);
+        emit IERC8270.PullNativeBalance(id1, user2, data);
         vm.prank(user1);
         dut.pullNativeBalance(id1, user2, data);
     }

@@ -24,7 +24,7 @@ This project implements an ERC-721 NFT standard for managing Ethereum staking va
 
 ### Core contracts
 
-**`src/ERCXXXX.vy`** — Main ERC-721 implementation. Implements ERC-721, ERC-721 Enumerable, ERC-5646 (state fingerprinting), and the custom ERC-XXXX standard. Key design choices:
+**`src/ERC8270.vy`** — Main ERC-721 implementation. Implements ERC-721, ERC-721 Enumerable, ERC-5646 (state fingerprinting), and the custom ERC-8270 standard. Key design choices:
 - BLS12 public keys are split into a 256-bit `hi` and 128-bit `lo` component to fit in `TokenData` structs.
 - Owner/index are packed into a single `uint256` in storage (address in lower 160 bits, index in upper 96 bits) — see `pack_owner` / `unpack_owner`.
 - There is 0xf8 bytes of padding before the first `TokenData` entry to align storage at a clean boundary.
@@ -32,7 +32,7 @@ This project implements an ERC-721 NFT standard for managing Ethereum staking va
 
 **`src/WithdrawalReceiver.vy`** — Minimal proxy contract per validator. Receives ETH from withdrawals; exposes EIP-7002 partial/full withdrawal requests and EIP-7251 consolidation/compounding switch requests to the withdrawal address. Also forwards arbitrary calls from the withdrawal address.
 
-**`src/interfaces/`** — Solidity interfaces (`IERCXXXX.sol`, `IERC5646.sol`) and a Vyper interface stub (`IWithdrawalReceiver.vyi`).
+**`src/interfaces/`** — Solidity interfaces (`IERC8270.sol`, `IERC5646.sol`) and a Vyper interface stub (`IWithdrawalReceiver.vyi`).
 
 ### State fingerprinting (ERC-5646)
 

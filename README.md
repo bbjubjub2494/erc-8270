@@ -1,4 +1,4 @@
-# source code for ERC-XXXX: Canonical Validator Wrapper
+# source code for ERC-8270: Canonical Validator Wrapper
 
 **UNDER DEVELOPMENT**
 
@@ -8,7 +8,7 @@ In addition to what is advertised in the ERC, we showcase support for Gnosis Cha
 
 ## Important Files
 
-- `contracts/src/core/ERCXXXX.vy` main contract
+- `contracts/src/core/ERC8270.vy` main contract
 - `contracts/src/core/WithdrawalReceiver.vy` deployed at the withdrawal address
 - `contracts/src/periphery` utility contracts, NOT part of the ERC
 - `contracts/scripts/Deploy.s.sol` deployment script

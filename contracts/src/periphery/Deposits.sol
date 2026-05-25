@@ -5,15 +5,15 @@ pragma solidity ^0.8;
 import {DepositsBase} from "src/periphery/DepositsBase.sol";
 
 import {IDepositContract} from "src/interfaces/IDepositContract.sol";
-import {IERCXXXX} from "src/interfaces/IERCXXXX.sol";
+import {IERC8270} from "src/interfaces/IERC8270.sol";
 
-/// @title ERC-XXXX: Deposit Helper
+/// @title ERC-8270: Deposit Helper
 /// @author bbjubjub.eth
-/// @notice Deposit helper for ERC-XXXX wrapped validators.
+/// @notice Deposit helper for ERC-8270 wrapped validators.
 contract Deposits is DepositsBase {
     IDepositContract public immutable DEPOSIT_CONTRACT;
 
-    constructor(IERCXXXX _ercxxxx, IDepositContract _depositContract) DepositsBase(_ercxxxx) {
+    constructor(IERC8270 _erc8270, IDepositContract _depositContract) DepositsBase(_erc8270) {
         DEPOSIT_CONTRACT = _depositContract;
     }
 
@@ -47,8 +47,8 @@ contract Deposits is DepositsBase {
     }
 
     function _deposit(uint256 id, bool compounding, bytes calldata signature, bytes32 depositDataRoot) private {
-        address withdrawalAddress = ERCXXXX.withdrawalAddressOf(id);
-        (bytes32 validatorKeyHi, bytes16 validatorKeyLo) = ERCXXXX.validatorKeyOf(id);
+        address withdrawalAddress = ERC8270.withdrawalAddressOf(id);
+        (bytes32 validatorKeyHi, bytes16 validatorKeyLo) = ERC8270.validatorKeyOf(id);
         bytes memory validatorKey = bytes.concat(validatorKeyHi, validatorKeyLo);
         bytes32 withdrawalCredential = _makeWithdrawalCredential(withdrawalAddress, compounding);
         DEPOSIT_CONTRACT.deposit{value: msg.value}(

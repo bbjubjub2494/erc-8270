@@ -1,7 +1,7 @@
 {
-  "name": "@erc-xxxx/contracts",
+  "name": "@erc-8270/contracts",
   "version": "1.0.0",
-  "description": "smart contracts for ERC-XXXX with exported addressed and ABIs",
+  "description": "smart contracts for ERC-8270 with exported addressed and ABIs",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [

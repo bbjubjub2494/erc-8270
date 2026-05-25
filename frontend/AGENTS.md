@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a web frontend for ERC-XXXX - a system that represents Ethereum/Gnosis validator stakes as NFTs. Users can mint NFTs for validators, deposit stake, view validator status, and claim withdrawals.
+This is a web frontend for ERC-8270 - a system that represents Ethereum/Gnosis validator stakes as NFTs. Users can mint NFTs for validators, deposit stake, view validator status, and claim withdrawals.
 
 ## Development Commands
 

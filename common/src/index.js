@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import { NETWORKS, getNetwork } from './networks.js';
-import { ERCXXXXABI } from '@erc-xxxx/contracts';
+import { ERC8270ABI } from '@erc-8270/contracts';
 
 export { NETWORKS, getNetwork };
 
@@ -25,7 +25,7 @@ export function getExplorerUrl(network, txHash) {
 
 export function makeContract(network) {
     const provider = new ethers.JsonRpcProvider(network.rpcUrl);
-    const abi = ERCXXXXABI;
+    const abi = ERC8270ABI;
     return new ethers.Contract(network.mainAddress, abi, provider);
 }
 
