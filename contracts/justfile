@@ -25,3 +25,14 @@ create2:
     anvil -q & forge script --broadcast --ffi -r http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 scripts/Deploy.s.sol; kill %1
     cast create2 -e 08270 -i `jq -r .transactions[0].transaction.input[66:] broadcast/Deploy.s.sol/31337/run-latest.json`
     
+verify: (_verify "560048") (_verify "10200")
+_verify chainid:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	function _sourcify {
+		address=$1
+		contract_id=$2
+		jq '{"compilerVersion": "v0.4.3+commit.bff19ea2", "contractIdentifier": "'$contract_id'", "stdJsonInput": .}' | curl --data @- -H 'Content-Type: application/json' "https://staging.sourcify.dev/server/v2/verify/{{chainid}}/$address"
+	}
+	vyper -f solc_json src/core/ERC8270.vy | _sourcify `jq -r .transactions[0].contractAddress broadcast/Deploy.s.sol/{{chainid}}/run-latest.json` src/core/ERC8270.vy:ERC8270
+	vyper -f solc_json src/core/WithdrawalReceiver.vy | _sourcify `jq -r .transactions[0].additionalContracts[0].address broadcast/Deploy.s.sol/{{chainid}}/run-latest.json` src/core/WithdrawalReceiver.vy:WithdrawalReceiver
