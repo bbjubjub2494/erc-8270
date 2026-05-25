@@ -42,7 +42,7 @@ contract DeployScript is Script {
 
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
         bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERC8270.vy"), abi.encode(imageUrl, wrCode));
-        address erc = deployDeterministic(ercCode, 0x0cfc5f56a95a345931c7effe56637fd15f896de4d99dcc865d08dabf8c75928f);
+        address erc = deployDeterministic(ercCode, 0x95ae896a8a2c03ae308fa37670c97bb536ec101be7bd3b82c52ccb66e649cd7b);
         console2.log("Deployed ERC8270 at", erc);
 
         address token;
