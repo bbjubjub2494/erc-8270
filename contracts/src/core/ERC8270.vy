@@ -440,7 +440,7 @@ def pullNativeBalance(token_id: uint256, target: address = msg.sender, data: Byt
 
 @external
 @payable
-def arbitraryCall(token_id: uint256, target: address, data: Bytes[2**16] = b""):
+def arbitraryCall(token_id: uint256, target: address, data: Bytes[2**16]):
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
     self.token_data[token_id].state_fingerprint = keccak256(
