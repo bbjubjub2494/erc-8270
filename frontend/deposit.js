@@ -96,7 +96,7 @@ function parseDepositData() {
             }
         }
 
-        const expectedNetworkName = state.id;
+        const expectedNetworkName = state.currentNetwork.id;
         if (depositItem.network_name.toLowerCase() !== expectedNetworkName) {
             showError(statusMessage, `Invalid network: ${depositItem.network_name}. Expected "${expectedNetworkName}"`);
             return;
@@ -243,7 +243,7 @@ async function depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei)
     showSuccess(statusMessage, 'Using EIP-5792 batching for single signature approval!');
 
     const erc20Iface = new ethers.Interface(ERC20_ABI);
-    const depositsIface = new ethers.Interface(IDepositsGnoABI);
+    const depositsIface = new ethers.Interface(DepositsGnoABI);
     const depositsAddress = state.currentNetwork.depositsAddress;
     const tokenAddress = state.currentNetwork.gnoTokenAddress;
     const approveCalldata = erc20Iface.encodeFunctionData('approve', [depositsAddress, amountInWei]);
@@ -304,7 +304,7 @@ async function depositWithoutBatchingERC20(tokenIdBigInt, compounding, amountInW
 
     txStatusEl.textContent = 'Preparing deposit...';
 
-    const depositsIface = new ethers.Interface(IDepositsGnoABI);
+    const depositsIface = new ethers.Interface(DepositsGnoABI);
     const signatureBytes = ethers.getBytes(parsedDepositData.signature);
     const depositDataRootBytes = ethers.getBytes(parsedDepositData.depositDataRoot);
     const calldata = depositsIface.encodeFunctionData('frontrunnable', [
@@ -355,7 +355,7 @@ async function depositPayable(tokenIdBigInt, compounding, amountInWei) {
 
     txStatusEl.textContent = 'Preparing deposit...';
 
-    const depositsIface = new ethers.Interface(IDepositsABI);
+    const depositsIface = new ethers.Interface(DepositsABI);
     const signatureBytes = ethers.getBytes(parsedDepositData.signature);
     const depositDataRootBytes = ethers.getBytes(parsedDepositData.depositDataRoot);
     const calldata = depositsIface.encodeFunctionData('frontrunnable', [
