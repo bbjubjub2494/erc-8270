@@ -8,10 +8,9 @@ import {IERC8270} from "src/interfaces/IERC8270.sol";
 contract DeployScript is Script {
     address immutable DEPLOYMENT_PROXY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
-    function deployDeterministic(bytes memory initCode) internal returns (address) {
+    function deployDeterministic(bytes memory initCode, bytes32 salt) internal returns (address) {
         bytes32 initCodeHash = keccak256(initCode);
 
-        bytes32 salt = 0;
         address predicted =
             address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), DEPLOYMENT_PROXY, salt, initCodeHash)))));
         if (predicted.code.length == 0) {
@@ -43,7 +42,7 @@ contract DeployScript is Script {
 
         bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
         bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERC8270.vy"), abi.encode(imageUrl, wrCode));
-        address erc = deployDeterministic(ercCode);
+        address erc = deployDeterministic(ercCode, 0x0cfc5f56a95a345931c7effe56637fd15f896de4d99dcc865d08dabf8c75928f);
         console2.log("Deployed ERC8270 at", erc);
 
         address token;
@@ -63,7 +62,7 @@ contract DeployScript is Script {
         } else {
             depositsCode = vm.getCode("src/periphery/DepositsGno.sol");
         }
-        address deposits = deployDeterministic(bytes.concat(depositsCode, abi.encode(erc, depositContract)));
+        address deposits = deployDeterministic(bytes.concat(depositsCode, abi.encode(erc, depositContract)), 0);
         console2.log("Deployed Deposits at", deposits);
     }
 }

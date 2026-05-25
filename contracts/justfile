@@ -19,3 +19,9 @@ snapshot:
 
 check-snapshot:
     forge snapshot --check
+
+# find a CREATE2 salt for the ERC vanity address
+create2:
+    anvil -q & forge script --broadcast --ffi -r http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 scripts/Deploy.s.sol; kill %1
+    cast create2 -e 08270 -i `jq -r .transactions[0].transaction.input[66:] broadcast/Deploy.s.sol/31337/run-latest.json`
+    
