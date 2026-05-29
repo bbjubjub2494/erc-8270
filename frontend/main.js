@@ -300,8 +300,9 @@ async function pullExecutionLayerBalance() {
             const batchId = await window.ethereum.request({
                 method: 'wallet_sendCalls',
                 params: [{
-                    version: '1.0',
+                    version: '2.0.0',
                     chainId: '0x' + currentNetwork.chainId.toString(16),
+		    atomicRequired: false,
                     from: userAddress,
                     calls: [
                         { to: currentNetwork.depositsContractAddress, data: claimData, value: '0x0' },

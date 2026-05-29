@@ -269,8 +269,9 @@ async function depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei)
     const batchId = await state.provider.request({
         method: 'wallet_sendCalls',
         params: [{
-            version: '1.0',
+	    version: '2.0.0',
             chainId: '0x' + state.currentNetwork.chainId.toString(16),
+            atomicRequired: false,
             from: state.userAddress,
             calls: calls
         }]
