@@ -1,3 +1,9 @@
+"""
+@title ERC-8270: Canonical Validator Wrapper — Withdrawal Receiver
+@license CC0
+@author bbjubjub.eth
+"""
+
 # pragma version ==0.4.3
 # pragma evm-version prague
 # pragma nonreentrancy off
@@ -34,7 +40,7 @@ def validator_key() -> (bytes32, bytes16):
 
 
 @external
-def set_validator_key(hi: bytes32, lo: bytes16):
+def _set_validator_key(hi: bytes32, lo: bytes16):
     assert msg.sender == CONTROLLER
     self.validator_key_hi = hi
     self.validator_key_lo = lo
@@ -58,6 +64,23 @@ def _request_consolidation(target_key_hi: bytes32, target_key_lo: bytes16):
     raw_call(
         CONSOLIDATION_REQUESTS,
         concat(self.validator_key_hi, self.validator_key_lo, target_key_hi, target_key_lo),
+        value=fee,
+    )
+
+
+@external
+@payable
+def _request_switch_to_compounding():
+    assert msg.sender == CONTROLLER
+    fee: uint256 = self._query_fee(CONSOLIDATION_REQUESTS)
+    raw_call(
+        CONSOLIDATION_REQUESTS,
+        concat(
+            self.validator_key_hi,
+            self.validator_key_lo,
+            self.validator_key_hi,
+            self.validator_key_lo,
+        ),
         value=fee,
     )
 

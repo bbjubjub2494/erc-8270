@@ -1,16 +1,12 @@
+"""
+@title ERC-8270: Canonical Validator Wrapper — Format Helpers
+@license CC0
+@author bbjubjub.eth
+@dev these functions waste gas: they should be used in view functions running off-chain.
+"""
+
 # pragma version ==0.4.3
 # pragma evm-version prague
-
-@pure
-def to_hex_digit(nibble: uint256) -> String[1]:
-    alphabet: String[16] = "0123456789abcdef"
-    return slice(alphabet, nibble, 1)
-
-
-@pure
-def to_hex(byte: uint256) -> String[2]:
-    byte = byte % 256
-    return concat(self.to_hex_digit(byte // 16), self.to_hex_digit(byte % 16))
 
 
 @pure
@@ -76,33 +72,6 @@ def bytes16_to_hex(data: bytes16) -> String[32]:
 
 
 @pure
-def address_to_hex(addr: address) -> String[40]:
-    v: uint256 = convert(addr, uint256)
-    return concat(
-        self.to_hex(v >> 152),
-        self.to_hex(v >> 144),
-        self.to_hex(v >> 136),
-        self.to_hex(v >> 128),
-        self.to_hex(v >> 120),
-        self.to_hex(v >> 112),
-        self.to_hex(v >> 104),
-        self.to_hex(v >> 96),
-        self.to_hex(v >> 88),
-        self.to_hex(v >> 80),
-        self.to_hex(v >> 72),
-        self.to_hex(v >> 64),
-        self.to_hex(v >> 56),
-        self.to_hex(v >> 48),
-        self.to_hex(v >> 40),
-        self.to_hex(v >> 32),
-        self.to_hex(v >> 24),
-        self.to_hex(v >> 16),
-        self.to_hex(v >> 8),
-        self.to_hex(v),
-    )
-
-
-@pure
 def address_to_hex_erc55(addr: address) -> String[40]:
     plain: String[40] = self.address_to_hex(addr)
     checksum: uint256 = convert(keccak256(plain), uint256)
@@ -148,6 +117,44 @@ def address_to_hex_erc55(addr: address) -> String[40]:
         self.erc55_process_nibble(checksum >> 100, slice(plain, 38, 1)),
         self.erc55_process_nibble(checksum >> 96, slice(plain, 39, 1)),
     )
+
+
+@pure
+def address_to_hex(addr: address) -> String[40]:
+    v: uint256 = convert(addr, uint256)
+    return concat(
+        self.to_hex(v >> 152),
+        self.to_hex(v >> 144),
+        self.to_hex(v >> 136),
+        self.to_hex(v >> 128),
+        self.to_hex(v >> 120),
+        self.to_hex(v >> 112),
+        self.to_hex(v >> 104),
+        self.to_hex(v >> 96),
+        self.to_hex(v >> 88),
+        self.to_hex(v >> 80),
+        self.to_hex(v >> 72),
+        self.to_hex(v >> 64),
+        self.to_hex(v >> 56),
+        self.to_hex(v >> 48),
+        self.to_hex(v >> 40),
+        self.to_hex(v >> 32),
+        self.to_hex(v >> 24),
+        self.to_hex(v >> 16),
+        self.to_hex(v >> 8),
+        self.to_hex(v),
+    )
+
+
+@pure
+def to_hex_digit(nibble: uint256) -> String[1]:
+    alphabet: String[16] = "0123456789abcdef"
+    return slice(alphabet, nibble % 16, 1)
+
+
+@pure
+def to_hex(byte: uint256) -> String[2]:
+    return concat(self.to_hex_digit(byte // 16), self.to_hex_digit(byte % 16))
 
 
 @pure

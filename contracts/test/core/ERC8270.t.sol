@@ -378,10 +378,7 @@ contract ERC8270Test is Test {
 
         hoax(user1);
         dut.requestSwitchToCompounding{value: fee}(id1);
-        expected = vm.eip712HashStruct(
-            "ConsolidationRequested(bytes32 previousFingerprint, bytes32 targetKeyHi, bytes16 targetKeyLo)",
-            abi.encode(ConsolidationRequested(expected, validatorKey1Hi, validatorKey1Lo))
-        );
+        // no change
         assertEq(dut.getStateFingerprint(id1), expected);
 
         hoax(user1);
@@ -483,8 +480,6 @@ contract ERC8270Test is Test {
         uint256 fee = 1 wei;
 
         _mockConsolidationRequest(fee, validatorKey1Hi, validatorKey1Lo);
-        vm.expectEmit();
-        emit IERC8270.ConsolidationRequest(id1, validatorKey1Hi, validatorKey1Lo);
         hoax(user1, 1 ether);
         dut.requestSwitchToCompounding{value: 2}(id1);
 

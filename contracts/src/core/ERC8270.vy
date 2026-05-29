@@ -1,3 +1,9 @@
+"""
+@title ERC-8270: Canonical Validator Wrapper
+@license CC0
+@author bbjubjub.eth
+"""
+
 # pragma version ==0.4.3
 # pragma evm-version prague
 # pragma nonreentrancy on
@@ -49,7 +55,7 @@ struct TokenData:
     state_fingerprint: bytes32
 
 
-next_id: public(uint256)
+next_id: uint256
 image_url: String[128]  # 4 slots
 tokens_by_owner: HashMap[address, DynArray[uint256, MAX_ID]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
@@ -61,14 +67,12 @@ token_data: TokenData[MAX_ID]
 WITHDRAWAL_RECEIVER_IMPL: immutable(address)
 
 
-@internal
-@view
+@pure
 def _pack(index_by_owner: uint96, owner: address) -> uint256:
     return convert(index_by_owner, uint256) << 160 | convert(owner, uint256)
 
 
-@internal
-@view
+@pure
 def _unpack(index_and_owner: uint256) -> (uint96, address):
     index_by_owner: uint96 = convert(index_and_owner >> 160, uint96)
     mask: uint256 = convert(max_value(uint160), uint256)
@@ -78,6 +82,9 @@ def _unpack(index_and_owner: uint256) -> (uint96, address):
 
 @deploy
 def __init__(image_url: String[128], withdrawal_receiver_code: Bytes[49152]):
+    """
+    @dev we make this contract deploy the withdrawal receiver because both contracts need to know each other's addresses
+    """
     WITHDRAWAL_RECEIVER_IMPL = raw_create(withdrawal_receiver_code)
     self.next_id = 1
     self.image_url = image_url
@@ -104,13 +111,13 @@ def supportsInterface(interface_id: bytes4) -> bool:
 
 
 @external
-@view
+@pure
 def name() -> String[29]:
     return "ERC-8270 Wrapped Beacon Stake"
 
 
 @external
-@view
+@pure
 def symbol() -> String[7]:
     return "ERC8270"
 
@@ -118,6 +125,9 @@ def symbol() -> String[7]:
 @external
 @view
 def tokenURI(token_id: uint256) -> String[2**16]:
+    """
+    ERC-721 JSON metadata. The validator key and the withdrawal address are included as attributes.
+    """
     receiver: IWithdrawalReceiver = self.withdrawal_receiver(token_id)
     key_hi: bytes32 = empty(bytes32)
     key_lo: bytes16 = empty(bytes16)
@@ -154,7 +164,6 @@ def tokenURI(token_id: uint256) -> String[2**16]:
 
 ## ERC-721 ##
 
-@internal
 @view
 def _owner(token_id: uint256) -> address:
     owner: address = self._unpack(self.token_data[token_id].index_and_owner)[1]
@@ -162,20 +171,17 @@ def _owner(token_id: uint256) -> address:
     return owner
 
 
-@internal
 @view
 def check_exists(token_id: uint256):
     assert self.token_data[token_id].index_and_owner != 0, "ERC-721: token does not exist"
 
 
-@internal
 @view
 def check_allowed(token_id: uint256, owner: address):
     if msg.sender != owner and msg.sender != self.token_data[token_id].approved:
         assert self.approval_for_all[owner][msg.sender], "ERC-721: not owner or approved"
 
 
-@internal
 @view
 def check_operator(owner: address):
     if msg.sender != owner:
@@ -224,7 +230,6 @@ def setApprovalForAll(operator: address, approved: bool):
     log IERC721.ApprovalForAll(owner=msg.sender, operator=operator, approved=approved)
 
 
-@internal
 def _transfer(expected_owner: address, receiver: address, token_id: uint256):
     index: uint96 = 0
     owner: address = empty(address)
@@ -246,7 +251,6 @@ def _transfer(expected_owner: address, receiver: address, token_id: uint256):
 
 
 # caller must ensure the token_id is fresh
-@internal
 def _mint(receiver: address, token_id: uint256):
     assert receiver != empty(address), "ERC-721: mint to zero"
     index: uint96 = convert(len(self.tokens_by_owner[receiver]), uint96)
@@ -308,6 +312,14 @@ def tokenOfOwnerByIndex(owner: address, index: uint256) -> uint256:
 @external
 @view
 def getStateFingerprint(token_id: uint256) -> bytes32:
+    """
+    @notice ERC-5646 state fingerprint. It changes when `requestConsolidation()`, `requestSwitchToCompounding()`, `pullNativeBalance()`, and `arbitraryCall()` are used on the token.
+    @dev the fingerprint is an EIP-712 hash which includes the previous hash. The following signatures are used:
+        - `Minted()`
+        - `ConsolidationRequested(bytes32 previousFingerprint,bytes32 targetKeyHi,bytes16 targetKeyLo)`
+        - `NativeBalancePulled(bytes32 previousFingerprint,address target,bytes data)`
+        - `ArbitraryCall(bytes32 previousFingerprint,address target,bytes data)`
+    """
     state_fingerprint: bytes32 = self.token_data[token_id].state_fingerprint
     assert state_fingerprint != empty(bytes32), "ERC-721: token does not exist"
     return state_fingerprint
@@ -315,7 +327,6 @@ def getStateFingerprint(token_id: uint256) -> bytes32:
 
 ## ERC-8270 ##
 
-@internal
 @view
 def withdrawal_receiver(token_id: uint256) -> IWithdrawalReceiver:
     withdrawal_address: address = self.token_data[token_id].withdrawal_address
@@ -329,6 +340,15 @@ def mint(
     validator_key_lo: bytes16,
     initial_owner: address = msg.sender,
 ) -> uint256:
+    """
+    @notice Create a token intended to wrap the given validator.
+    @dev The withdrawal address of the token depends only on the parameters of this function, hence it can be determined counterfactually.
+    This function cannot guarantee that the validator will set its withdrawal credentials to the withdrawal address associated with this token.
+    @param validator_key_hi The 256 most significant bits of the validator BLS12-381 public key.
+    @param validator_key_lo The 128 least significant bits of the validator BLS12-381 public key.
+    @param initial_owner The address that should receive the ERC-721 token upon mint.
+    @return token_id The ERC-721 id of the new token.
+    """
     withdrawal_address: address = create_minimal_proxy_to(
         WITHDRAWAL_RECEIVER_IMPL,
         revert_on_failure=False,
@@ -341,7 +361,7 @@ def mint(
     self._mint(initial_owner, token_id)
     self.token_data[token_id].withdrawal_address = withdrawal_address
     self.token_data[token_id].state_fingerprint = keccak256(keccak256("Minted()"))
-    extcall IWithdrawalReceiver(withdrawal_address).set_validator_key(
+    extcall IWithdrawalReceiver(withdrawal_address)._set_validator_key(
         validator_key_hi, validator_key_lo
     )
     return token_id
@@ -350,12 +370,19 @@ def mint(
 @external
 @view
 def validatorKeyOf(token_id: uint256) -> (bytes32, bytes16):
+    """
+    @return The 256 most significant bits of the validator BLS12-381 public key.
+    @return The 128 least significant bits of the validator BLS12-381 public key.
+    """
     return staticcall self.withdrawal_receiver(token_id).validator_key()
 
 
 @external
 @view
 def withdrawalAddressOf(token_id: uint256) -> address:
+    """
+    @return The address that the validator should use as its withdrawal credential.
+    """
     withdrawal_address: address = self.token_data[token_id].withdrawal_address
     assert withdrawal_address != empty(address), "ERC-721: token does not exist"
     return withdrawal_address
@@ -364,6 +391,12 @@ def withdrawalAddressOf(token_id: uint256) -> address:
 @external
 @payable
 def requestPartialWithdrawal(token_id: uint256, amount: uint64):
+    """
+    @notice Request an EIP-7002 partial withdrawal of the validator controlled by this token.
+    @dev The fee will be paid using the withdrawal address balance. If necessary, the caller can add value to this function to cover it,
+    @param token_id The ERC-721 id of the token.
+    @param amount the amount to withdraw, in consensus layer units.
+    """
     self.check_allowed(token_id, self._owner(token_id))
     assert amount != 0, "ERC-8270: zero partial withdrawal amount"
     extcall self.withdrawal_receiver(token_id)._request_withdrawal(
@@ -375,6 +408,11 @@ def requestPartialWithdrawal(token_id: uint256, amount: uint64):
 @external
 @payable
 def requestFullWithdrawal(token_id: uint256):
+    """
+    @notice Request an EIP-7002 full withdrawal and exit of the validator controlled by this token.
+    @dev The fee will be paid using the withdrawal address balance. If necessary, the caller can add value to this function to cover it,
+    @param token_id The ERC-721 id of the token.
+    """
     self.check_allowed(token_id, self._owner(token_id))
     extcall self.withdrawal_receiver(token_id)._request_withdrawal(
         empty(bytes8),
@@ -382,9 +420,16 @@ def requestFullWithdrawal(token_id: uint256):
     )
 
 
-@internal
+@external
 @payable
-def _request_consolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
+def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
+    """
+    @notice Request an EIP-7251 consolidation of the validator controlled by this token.
+    @dev The fee will be paid using the withdrawal address balance. If necessary, the caller can add value to this function to cover it,
+    @param token_id The ERC-721 id of the token.
+    @param target_key_hi The 256 most significant bits of the BLS12-381 public key of the validator to consolidate into.
+    @param target_key_lo The 128 least significant bits of the BLS12-381 public key of the validator to consolidate into.
+    """
     self.check_allowed(token_id, self._owner(token_id))
     self.token_data[token_id].state_fingerprint = keccak256(
         abi_encode(
@@ -408,21 +453,24 @@ def _request_consolidation(token_id: uint256, target_key_hi: bytes32, target_key
 
 @external
 @payable
-def requestConsolidation(token_id: uint256, target_key_hi: bytes32, target_key_lo: bytes16):
-    self._request_consolidation(token_id, target_key_hi, target_key_lo)
-
-
-@external
-@payable
 def requestSwitchToCompounding(token_id: uint256):
-    key_hi: bytes32 = empty(bytes32)
-    key_lo: bytes16 = empty(bytes16)
-    key_hi, key_lo = staticcall self.withdrawal_receiver(token_id).validator_key()
-    self._request_consolidation(token_id, key_hi, key_lo)
+    """
+    @notice Use an EIP-7251 consolidation request to turn the validator into a compounding validator.
+    @dev The fee will be paid using the withdrawal address balance. If necessary, the caller can add value to this function to cover it,
+    @param token_id The ERC-721 id of the token.
+    """
+    self.check_allowed(token_id, self._owner(token_id))
+    extcall self.withdrawal_receiver(token_id)._request_switch_to_compounding(value=msg.value)
 
 
 @external
 def pullNativeBalance(token_id: uint256, target: address = msg.sender, data: Bytes[2**16] = b""):
+    """
+    @notice Transfer the native balance of the withdrawal address.
+    @param token_id The ERC-721 id of the token.
+    @param target Address to receive the native balance.
+    @param data calldata to pass along with the balance.
+    """
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
     assert target != empty(address), "ERC-8270: pull native balance to zero"
@@ -441,6 +489,13 @@ def pullNativeBalance(token_id: uint256, target: address = msg.sender, data: Byt
 @external
 @payable
 def arbitraryCall(token_id: uint256, target: address, data: Bytes[2**16]):
+    """
+    @notice Call a function from the withdrawal address.
+    @dev value from this function will be forwarded to the arbitrary call.
+    @param token_id The ERC-721 id of the token.
+    @param target Address of the contract to call.
+    @param data Calldata to use.
+    """
     # check, effect, interaction
     self.check_allowed(token_id, self._owner(token_id))
     self.token_data[token_id].state_fingerprint = keccak256(

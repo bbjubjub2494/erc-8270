@@ -5,7 +5,7 @@ def validator_key() -> (bytes32, bytes16):
 
 
 @external
-def set_validator_key(key_hi: bytes32, key_lo: bytes16):
+def _set_validator_key(key_hi: bytes32, key_lo: bytes16):
     ...
 
 
@@ -18,6 +18,12 @@ def _request_withdrawal(amount: bytes8):
 @external
 @payable
 def _request_consolidation(target_key_hi: bytes32, target_key_lo: bytes16):
+    ...
+
+
+@external
+@payable
+def _request_switch_to_compounding():
     ...
 
 
