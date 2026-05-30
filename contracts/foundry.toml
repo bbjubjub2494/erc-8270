@@ -2,9 +2,11 @@
 libs = ["dependencies"]
 solc_version = "0.8.35"
 evm_version = "prague"
+ffi = true # needed to invoke prepare.py
 
 [soldeer]
 remappings_generate = false
 
 [dependencies]
 forge-std = "1.16.1"
+ercs = { version = "unversioned", git = "https://github.com/bbjubjub2494/ercs", branch = "canonical-validator-wrapper" }

@@ -1,12 +1,8 @@
 import { favicons } from 'favicons';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { CID } from 'multiformats/cid';
-import { sha256 } from 'multiformats/hashes/sha2';
-import * as dagPB from '@ipld/dag-pb';
-import { UnixFS } from 'ipfs-unixfs';
 
-const source = path.resolve(import.meta.dirname, 'logo.svg');
+const source = path.resolve(import.meta.dirname, '../contracts/dependencies/ercs-0/assets/erc-8270/logo.svg');
 const outputDir = path.resolve(import.meta.dirname, 'dist');
 
 const configuration = {
@@ -34,14 +30,6 @@ async function generateFavicons() {
   await fs.mkdir(outputDir, { recursive: true });
 
   await fs.copyFile(source, path.join(outputDir, "logo.svg"));
-
-  const logoData = await fs.readFile(source);
-  const unixfsNode = new UnixFS({ type: 'file', data: logoData });
-  const encoded = dagPB.encode({ Data: unixfsNode.marshal(), Links: [] });
-  const hash = await sha256.digest(encoded);
-  const cid = CID.createV1(dagPB.code, hash).toString();
-  await fs.writeFile(path.join(outputDir, 'logo.svg.cid'), cid);
-  console.log('IPFS CID for logo.svg:', cid);
 
   await Promise.all(
     response.images.map(async (image) => {

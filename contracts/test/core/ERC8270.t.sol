@@ -17,6 +17,8 @@ import {
 import {IERC5646} from "src/interfaces/IERC5646.sol";
 import {IERC8270} from "src/interfaces/IERC8270.sol";
 
+import {deployCore} from "scripts/Deploy.s.sol";
+
 using stdJson for string;
 
 contract ERC8270Test is Test {
@@ -36,8 +38,7 @@ contract ERC8270Test is Test {
     uint256 id1;
 
     function setUp() external {
-        bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        dut = IERC8270(deployCode("src/core/ERC8270.vy", abi.encode(imageUrl, wrCode)));
+        dut = IERC8270(deployCore());
 
         assertEq(dut.totalSupply(), 0);
         vm.expectRevert("ERC-721: invalid index");

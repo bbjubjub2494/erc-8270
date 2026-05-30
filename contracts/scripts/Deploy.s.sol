@@ -2,34 +2,39 @@
 pragma solidity ^0.8;
 
 import {Script, console2} from "dependencies/forge-std-1.16.1/src/Script.sol";
+import {stdJson} from "dependencies/forge-std-1.16.1/src/StdJson.sol";
+import {Vm} from "dependencies/forge-std-1.16.1/src/Vm.sol";
 
 import {IERC8270} from "src/interfaces/IERC8270.sol";
 
+using stdJson for string;
+
+address constant DEPLOYMENT_PROXY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
+Vm constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
+function deployCore() returns (address erc) {
+    string[] memory args = new string[](3);
+    args[0] = "uv";
+    args[1] = "run";
+    args[2] = "dependencies/ercs-unversioned/assets/erc-8270/prepare.py";
+    string memory params = string(vm.ffi(args));
+    return deployDeterministic(params.readBytes(".initcode"), "");
+}
+
+function deployDeterministic(bytes memory initCode, bytes32 salt) returns (address) {
+    bytes32 initCodeHash = keccak256(initCode);
+
+    address predicted = vm.computeCreate2Address(salt, initCodeHash, DEPLOYMENT_PROXY);
+    if (predicted.code.length == 0) {
+        vm.broadcast();
+        (bool ok,) = DEPLOYMENT_PROXY.call(bytes.concat(salt, initCode));
+        assert(ok);
+        assert(predicted.code.length != 0);
+    }
+    return predicted;
+}
+
 contract DeployScript is Script {
-    address immutable DEPLOYMENT_PROXY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
-
-    function deployDeterministic(bytes memory initCode, bytes32 salt) internal returns (address) {
-        bytes32 initCodeHash = keccak256(initCode);
-
-        address predicted =
-            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), DEPLOYMENT_PROXY, salt, initCodeHash)))));
-        if (predicted.code.length == 0) {
-            vm.broadcast();
-            (bool ok,) = DEPLOYMENT_PROXY.call(bytes.concat(salt, initCode));
-            assert(ok);
-            assert(predicted.code.length != 0);
-        }
-        return predicted;
-    }
-
-    function getCid() internal returns (string memory) {
-	    string[] memory args = new string[](3);
-	    args[0] = "node";
-	    args[1] = "-e";
-	    args[2] = "console.log(require('@erc-8270/favicons').logoCid)";
-	    return string(vm.ffi(args));
-    }
-
     function setUp() external {
         setChain(
             "chiado", ChainData({name: "Gnosis Chiado Testnet", chainId: 10200, rpcUrl: "https://rpc.chiadochain.net"})
@@ -37,12 +42,7 @@ contract DeployScript is Script {
     }
 
     function run() external {
-	string memory cid = getCid();
-	string memory imageUrl = string.concat("ipfs://", cid);
-
-        bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        bytes memory ercCode = bytes.concat(vm.getCode("src/core/ERC8270.vy"), abi.encode(imageUrl, wrCode));
-        address erc = deployDeterministic(ercCode, 0x95ae896a8a2c03ae308fa37670c97bb536ec101be7bd3b82c52ccb66e649cd7b);
+        address erc = deployCore();
         console2.log("Deployed ERC8270 at", erc);
 
         address token;

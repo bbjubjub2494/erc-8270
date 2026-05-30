@@ -11,7 +11,7 @@ const BROADCAST_DIR = path.resolve(import.meta.dirname, 'broadcast');
 async function build_deployments() {
   // Read all needed ABIs (deduplicated by contract name)
   const abiByContract = {};
-  for (const filename of ["ERC8270.vy", "Deposits.sol", "DepositsGno.sol"]) {
+  for (const filename of ["IERC8270.sol", "Deposits.sol", "DepositsGno.sol"]) {
     const name = path.basename(filename, path.extname(filename));
   const abiPath = path.join(OUT_DIR, filename, `${name}.json`);
     abiByContract[name] = (await fs.readJson(abiPath)).abi;

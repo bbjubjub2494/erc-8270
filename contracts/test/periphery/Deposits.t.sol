@@ -11,6 +11,8 @@ import {Deposits} from "src/periphery/Deposits.sol";
 
 import {DepositContractMock} from "test/mock/DepositContractMock.sol";
 
+import {deployCore} from "scripts/Deploy.s.sol";
+
 contract DepositsTest is Test {
     DepositContractMock constant depositContract = DepositContractMock(0x00000000219ab540356cBB839Cbe05303d7705Fa);
 
@@ -23,8 +25,6 @@ contract DepositsTest is Test {
     bytes constant signature =
         hex"00102030405060708090a0b0c0d0e0f112131415161718191a1b1c1d1e1f2232425262728292a2b2c2d2e2f33435363738393a3b3c3d3e3f445464748494a4b4c4d4e4f5565758595a5b5c5d5e5f66768696a6b6c6d6e6f778797a7b7c7d7e7f"; // pwn cyclic -n 2 -a 0123456789abcdef 192
 
-    string constant imageUrl = "ipfs://yyyyyy";
-
     uint256 id1;
 
     IERC8270 erc8270;
@@ -32,8 +32,7 @@ contract DepositsTest is Test {
 
     function setUp() public {
         deployCodeTo("test/mock/DepositContractMock.sol", address(depositContract));
-        bytes memory wrCode = vm.getCode("src/core/WithdrawalReceiver.vy");
-        erc8270 = IERC8270(deployCode("src/core/ERC8270.vy", abi.encode(imageUrl, wrCode)));
+        erc8270 = IERC8270(deployCore());
         vm.prank(user1);
         id1 = erc8270.mint(validatorKey1Hi, validatorKey1Lo, user1);
 

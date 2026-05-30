@@ -1,4 +1,10 @@
 [[dependencies]]
+name = "ercs"
+version = "unversioned"
+git = "https://github.com/bbjubjub2494/ercs"
+rev = "e6c0a33e898bd152e04978578396a8cfb5676984"
+
+[[dependencies]]
 name = "forge-std"
 version = "1.16.1"
 url = "https://soldeer-revisions.s3.amazonaws.com/forge-std/1_16_1_08-05-2026_08:51:16_forge-std-1.16.zip"

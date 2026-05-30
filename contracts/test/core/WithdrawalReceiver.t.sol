@@ -8,6 +8,8 @@ import {IERC20} from "dependencies/forge-std-1.16.1/src/interfaces/IERC20.sol";
 import {IERC165} from "dependencies/forge-std-1.16.1/src/interfaces/IERC165.sol";
 import {IERC721, IERC721TokenReceiver} from "dependencies/forge-std-1.16.1/src/interfaces/IERC721.sol";
 
+import {deployCore} from "scripts/Deploy.s.sol";
+
 interface IWithdrawalReceiver {
     function validator_key() external view returns (bytes32, bytes16);
     function _set_validator_key(bytes32 key_hi, bytes16 key_lo) external;
@@ -21,7 +23,8 @@ contract WithdrawalReceiverTest is Test {
     address constant WITHDRAWAL_REQUESTS = 0x00000961Ef480Eb55e80D19ad83579A64c007002; // EIP-7002 contract
     address constant CONSOLIDATION_REQUESTS = 0x0000BBdDc7CE488642fb579F8B00f3a590007251; // EIP-7251 contract
 
-    address controller = makeAddr("controller");
+    address controller;
+    address impl;
     address user = makeAddr("user");
     bytes32 constant validatorKey1Hi = 0x00102030405060708090a0b0c0d0e0f112131415161718191a1b1c1d1e1f2232;
     bytes16 constant validatorKey1Lo = 0x425262728292a2b2c2d2e2f334353637;
@@ -29,10 +32,18 @@ contract WithdrawalReceiverTest is Test {
     IWithdrawalReceiver dut;
 
     function setUp() external {
-        vm.prank(controller);
-        dut = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
+        controller = deployCore();
+        impl = vm.computeCreateAddress(controller, 1);
+        dut = _makeDut("dut");
         vm.prank(controller);
         dut._set_validator_key(validatorKey1Hi, validatorKey1Lo);
+    }
+
+    function _makeDut(string memory label) internal returns (IWithdrawalReceiver) {
+        address addr = makeAddr(label);
+        // bytecode from EIP-1167
+        vm.etch(addr, bytes.concat(hex"363d3d373d3d3d363d73", bytes20(impl), hex"5af43d82803e903d91602b57fd5bf3"));
+        return IWithdrawalReceiver(addr);
     }
 
     function test_set_validator_key() public view {
@@ -42,8 +53,7 @@ contract WithdrawalReceiverTest is Test {
     }
 
     function test_set_validator_key_only_controller() public {
-        vm.prank(controller);
-        IWithdrawalReceiver fresh = IWithdrawalReceiver(deployCode("src/core/WithdrawalReceiver.vy"));
+        IWithdrawalReceiver fresh = _makeDut("fresh wr");
         vm.prank(user);
         vm.expectRevert();
         fresh._set_validator_key(validatorKey1Hi, validatorKey1Lo);

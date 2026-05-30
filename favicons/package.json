@@ -7,9 +7,6 @@
     "prepare": "node generate.mjs"
   },
   "dependencies": {
-    "@ipld/dag-pb": "^4.1.7",
-    "favicons": "^7.2.0",
-    "ipfs-unixfs": "^13.0.0",
-    "multiformats": "^14.0.0"
+    "favicons": "^7.2.0"
   }
 }

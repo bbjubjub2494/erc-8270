@@ -17,19 +17,24 @@
 
       nativeBuildInputs = [
         pkgs.foundry
+        pkgs.git
       ];
 
       buildPhase = ''
-        forge soldeer update
+        export GIT_SSL_CAINFO="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+        forge soldeer install
+        rm -rf dependencies/ercs-unversioned/.git # for reproducibility
       '';
 
       installPhase = ''
         cp -R dependencies $out
       '';
 
+      dontPatchShebangs = true; # not allowed to reference store paths in FOD
+
       outputHashMode = "recursive";
       outputHashAlgo = "sha256";
-      outputHash = "sha256-HljDzkSgPQiyPhIDSoHRSZdZdt6ds5LlABdaWTivNYw=";
+      outputHash = "sha256-S7S5iz63xVOq5KlE+hGKXW+hZkpzO0KlOU46hMt6OpU=";
     };
 
     solc_0_8_35 = pkgs.fetchurl {
@@ -45,7 +50,7 @@
         inherit src;
         npmDeps = pkgs.fetchNpmDeps {
           inherit src;
-          hash = "sha256-Y+Ect9vbSL4ObBYk5MB9XARCfkNEYU65mEHtE5Ft+eE=";
+          hash = "sha256-MpG1H3ILYUTSHvsiWuJQlEaeBJbTyL4G0Qja4FU+oW8=";
         };
 
         buildInputs = [
