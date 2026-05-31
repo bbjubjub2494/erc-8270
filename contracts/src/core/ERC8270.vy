@@ -56,7 +56,7 @@ struct TokenData:
 
 
 next_id: uint256
-image_url: String[128]  # 4 slots
+image_url: String[128]  # 5 slots
 tokens_by_owner: HashMap[address, DynArray[uint256, MAX_ID]]
 approval_for_all: HashMap[address, HashMap[address, bool]]
 
@@ -313,7 +313,7 @@ def tokenOfOwnerByIndex(owner: address, index: uint256) -> uint256:
 @view
 def getStateFingerprint(token_id: uint256) -> bytes32:
     """
-    @notice ERC-5646 state fingerprint. It changes when `requestConsolidation()`, `requestSwitchToCompounding()`, `pullNativeBalance()`, and `arbitraryCall()` are used on the token.
+    @notice ERC-5646 state fingerprint. It changes when `requestConsolidation()`, `pullNativeBalance()`, and `arbitraryCall()` are used on the token.
     @dev the fingerprint is an EIP-712 hash which includes the previous hash. The following signatures are used:
         - `Minted()`
         - `ConsolidationRequested(bytes32 previousFingerprint,bytes32 targetKeyHi,bytes16 targetKeyLo)`
