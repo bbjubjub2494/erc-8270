@@ -8,10 +8,10 @@ In addition to what is advertised in the ERC, we showcase support for Gnosis Cha
 
 ## Important Files
 
-- `contracts/src/core/ERC8270.vy` main contract
-- `contracts/src/core/WithdrawalReceiver.vy` deployed at the withdrawal address
-- `contracts/src/periphery` utility contracts, NOT part of the ERC
+The core ERC code lives in the [ERCs repository](https://github.com/bbjubjub2494/ERCs/tree/canonical-validator-wrapper/assets/erc-8270)
+
 - `contracts/scripts/Deploy.s.sol` deployment script
+- `contracts/src/periphery` utility contracts, NOT part of the ERC
 - `frontend/` vibe-coded web frontend for the ERC contracts
 
 ## Legal
