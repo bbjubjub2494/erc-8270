@@ -21,6 +21,25 @@ import {deployCore} from "scripts/Deploy.s.sol";
 
 using stdJson for string;
 
+/// @notice Tries to re-enter ERC8270 during the ERC-721 safe transfer callback.
+contract ReentrantReceiver {
+    IERC8270 public dut;
+    bool public reentrancySucceeded;
+
+    constructor(IERC8270 _dut) {
+        dut = _dut;
+    }
+
+    function onERC721Received(address, address from, uint256 id, bytes calldata) external returns (bytes4) {
+        try dut.transferFrom(address(this), from, id) {
+            reentrancySucceeded = true;
+        } catch {
+            reentrancySucceeded = false;
+        }
+        return bytes4(0x150b7a02);
+    }
+}
+
 contract ERC8270Test is Test {
     address constant WITHDRAWAL_REQUESTS = 0x00000961Ef480Eb55e80D19ad83579A64c007002; // EIP-7002 contract
     address constant CONSOLIDATION_REQUESTS = 0x0000BBdDc7CE488642fb579F8B00f3a590007251; // EIP-7251 contract
@@ -605,5 +624,121 @@ contract ERC8270Test is Test {
         vm.expectRevert("ERC-721: not owner or operator");
         vm.prank(user2);
         dut.approve(user3, id1);
+    }
+
+    // Completeness: nonexistent tokens //
+
+    function test_nonexistent_token_reverts() external {
+        uint256 ghost = 999;
+
+        vm.expectRevert("ERC-721: token does not exist");
+        dut.ownerOf(ghost);
+
+        vm.expectRevert("ERC-721: token does not exist");
+        dut.getApproved(ghost);
+
+        vm.expectRevert("ERC-721: token does not exist");
+        dut.getStateFingerprint(ghost);
+
+        vm.expectRevert("ERC-721: token does not exist");
+        dut.withdrawalAddressOf(ghost);
+
+        vm.expectRevert("ERC-721: token does not exist");
+        dut.validatorKeyOf(ghost);
+    }
+
+    function test_mint_to_zero_reverts() external {
+        vm.expectRevert("ERC-721: mint to zero");
+        dut.mint(validatorKey1Hi, validatorKey1Lo, address(0));
+    }
+
+    function test_transfer_to_zero_reverts() external {
+        vm.expectRevert("ERC-721: transfer to zero");
+        vm.prank(user1);
+        dut.transferFrom(user1, address(0), id1);
+    }
+
+    function test_transfer_wrong_from_reverts() external {
+        // user1 is the actual owner; passing user2 as `from` must revert
+        vm.expectRevert("ERC-721: wrong owner");
+        vm.prank(user1);
+        dut.transferFrom(user2, user1, id1);
+    }
+
+    function test_approved_cleared_on_transfer() external {
+        vm.prank(user1);
+        dut.approve(user2, id1);
+        assertEq(dut.getApproved(id1), user2);
+
+        vm.prank(user2);
+        dut.transferFrom(user1, user3, id1);
+
+        assertEq(dut.getApproved(id1), address(0));
+    }
+
+    function test_mint_default_sender() external {
+        bytes32 keyHi = 0x8111111111111111111111111111111111111111111111111111111111111111;
+        bytes16 keyLo = 0x22222222222222222222222222222222;
+
+        // Vyper default arguments expose a separate 2-arg selector; call it via low-level
+        vm.prank(user2);
+        (bool ok, bytes memory ret) = address(dut).call(abi.encodeWithSignature("mint(bytes32,bytes16)", keyHi, keyLo));
+        assertTrue(ok, "mint with default owner should succeed");
+        uint256 id2 = abi.decode(ret, (uint256));
+        assertEq(dut.ownerOf(id2), user2, "default owner should be msg.sender");
+    }
+
+    function test_reentrancy_in_safe_transfer_blocked() external {
+        ReentrantReceiver malicious = new ReentrantReceiver(dut);
+
+        // safeTransferFrom calls onERC721Received; the receiver tries to re-enter transferFrom.
+        // The reentrancy guard (nonreentrancy on) must block the inner call.
+        vm.prank(user1);
+        dut.safeTransferFrom(user1, address(malicious), id1);
+
+        assertEq(dut.ownerOf(id1), address(malicious));
+        assertFalse(malicious.reentrancySucceeded());
+    }
+
+    function test_balance_and_total_supply_consistency() external {
+        bytes32 key2Hi = 0x8111111111111111111111111111111111111111111111111111111111111111;
+        bytes16 key2Lo = 0x22222222222222222222222222222222;
+        bytes32 key3Hi = 0x9222222222222222222222222222222222222222222222222222222222222222;
+        bytes16 key3Lo = 0x33333333333333333333333333333333;
+
+        assertEq(dut.totalSupply(), 1);
+        assertEq(dut.balanceOf(user1), 1);
+        assertEq(dut.balanceOf(user2), 0);
+
+        uint256 id2 = dut.mint(key2Hi, key2Lo, user2);
+        assertEq(dut.totalSupply(), 2);
+        assertEq(dut.balanceOf(user1), 1);
+        assertEq(dut.balanceOf(user2), 1);
+
+        uint256 id3 = dut.mint(key3Hi, key3Lo, user1);
+        assertEq(dut.totalSupply(), 3);
+        assertEq(dut.balanceOf(user1), 2);
+
+        vm.prank(user1);
+        dut.transferFrom(user1, user2, id3);
+        assertEq(dut.balanceOf(user1), 1);
+        assertEq(dut.balanceOf(user2), 2);
+        assertEq(dut.totalSupply(), 3);
+
+        // all token IDs belong to someone
+        assertEq(dut.ownerOf(id1), user1);
+        assertEq(dut.ownerOf(id2), user2);
+        assertEq(dut.ownerOf(id3), user2);
+    }
+
+    function test_token_by_index_sequential() external {
+        bytes32 key2Hi = 0x8111111111111111111111111111111111111111111111111111111111111111;
+        bytes16 key2Lo = 0x22222222222222222222222222222222;
+        dut.mint(key2Hi, key2Lo, user2);
+
+        // Tokens are assigned sequential IDs starting at 1, never burned.
+        // tokenByIndex(i) must therefore return i+1.
+        assertEq(dut.tokenByIndex(0), 1);
+        assertEq(dut.tokenByIndex(1), 2);
     }
 }

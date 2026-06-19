@@ -15,6 +15,7 @@ interface IWithdrawalReceiver {
     function _set_validator_key(bytes32 key_hi, bytes16 key_lo) external;
     function _request_withdrawal(bytes8 amount) external payable;
     function _request_consolidation(bytes32 target_key_hi, bytes16 target_key_lo) external payable;
+    function _request_switch_to_compounding() external payable;
     function _arbitrary_call(address destination, bytes calldata data) external payable;
     function _pull_native_balance(address destination, bytes calldata data) external;
 }
@@ -114,6 +115,20 @@ contract WithdrawalReceiverTest is Test {
         hoax(user);
         (ok,) = address(dut).call{value: 1 ether}(hex"abcdef01");
         assertFalse(ok, "call with unexpected calldata fails");
+    }
+
+    function test_request_switch_to_compounding() public {
+        uint256 fee = 1 gwei;
+        vm.mockCall(CONSOLIDATION_REQUESTS, bytes(""), abi.encode(fee));
+        // Must consolidate the validator with itself (source key == target key)
+        vm.expectCall(
+            CONSOLIDATION_REQUESTS,
+            fee,
+            bytes.concat(validatorKey1Hi, validatorKey1Lo, validatorKey1Hi, validatorKey1Lo)
+        );
+        vm.deal(address(dut), fee);
+        vm.prank(controller);
+        dut._request_switch_to_compounding();
     }
 
     // Regression Tests //

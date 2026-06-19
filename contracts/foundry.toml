@@ -4,6 +4,11 @@ solc_version = "0.8.35"
 evm_version = "prague"
 ffi = true # needed to invoke prepare.py
 
+[invariant]
+runs = 512
+depth = 50
+fail_on_revert = false
+
 [soldeer]
 remappings_generate = false
 
