@@ -12,13 +12,14 @@ using stdJson for string;
 address constant DEPLOYMENT_PROXY = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 Vm constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
-function deployCore() returns (address erc) {
+function deployCore() returns (address core) {
     string[] memory args = new string[](3);
     args[0] = "uv";
     args[1] = "run";
     args[2] = "dependencies/ercs-unversioned/assets/erc-8270/prepare.py";
     string memory params = string(vm.ffi(args));
-    return deployDeterministic(params.readBytes(".initcode"), "");
+    core = deployDeterministic(params.readBytes(".initcode"), params.readBytes32(".salt"));
+    assert(core == params.readAddress(".deployment_address"));
 }
 
 function deployDeterministic(bytes memory initCode, bytes32 salt) returns (address) {
@@ -42,8 +43,8 @@ contract DeployScript is Script {
     }
 
     function run() external {
-        address erc = deployCore();
-        console2.log("Deployed ERC8270 at", erc);
+        address core = deployCore();
+        console2.log("Deployed ERC8270 at", core);
 
         address token;
         address depositContract = 0x00000000219ab540356cBB839Cbe05303d7705Fa;
@@ -62,7 +63,7 @@ contract DeployScript is Script {
         } else {
             depositsCode = vm.getCode("src/periphery/DepositsGno.sol");
         }
-        address deposits = deployDeterministic(bytes.concat(depositsCode, abi.encode(erc, depositContract)), 0);
+        address deposits = deployDeterministic(bytes.concat(depositsCode, abi.encode(core, depositContract)), 0);
         console2.log("Deployed Deposits at", deposits);
     }
 }

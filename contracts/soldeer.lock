@@ -2,7 +2,7 @@
 name = "ercs"
 version = "unversioned"
 git = "https://github.com/bbjubjub2494/ercs"
-rev = "e6c0a33e898bd152e04978578396a8cfb5676984"
+rev = "6030f1e20c9fc479b16bbab0435488d82525d1c2"
 
 [[dependencies]]
 name = "forge-std"
