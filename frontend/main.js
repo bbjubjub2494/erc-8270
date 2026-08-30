@@ -1,16 +1,11 @@
 import { ethers } from 'ethers';
-import { IERC8270ABI, DepositsABI, DepositsGnoABI } from '@erc-8270/contracts';
-import { fetchBeaconChainData as commonFetchBeaconChainData, fetchTokenData as commonFetchTokenData, NETWORKS, SBC_DEPOSIT_CONTRACT_ABI, ERC20ABI } from '@erc-8270/common';
-import { waitForTransaction, waitForBatch } from './utils/transaction.js';
-
-let currentNetwork = NETWORKS.chiado;
+import { IERC8270ABI } from '@erc-8270/contracts';
+import { fetchBeaconChainData as commonFetchBeaconChainData, fetchTokenData as commonFetchTokenData, NETWORK, SBC_DEPOSIT_CONTRACT_ABI, ERC20ABI } from '@erc-8270/common';
+import { waitForBatch } from './utils/transaction.js';
 
 const provider = {
     async request({ method, params }) {
-        return this.requestUrl(currentNetwork.rpcUrl, { method, params });
-    },
-    async requestL1({ method, params }) {
-        return this.requestUrl(currentNetwork.l1RpcUrl, { method, params });
+        return this.requestUrl(NETWORK.rpcUrl, { method, params });
     },
     async requestUrl(url, { method, params }) {
         const response = await fetch(url, {
@@ -32,7 +27,7 @@ const provider = {
 };
 
 async function fetchBeaconChainData(validatorPubkey) {
-    const beaconData = await commonFetchBeaconChainData(currentNetwork, validatorPubkey);
+    const beaconData = await commonFetchBeaconChainData(validatorPubkey);
     if (!beaconData) return null;
 
     return {
@@ -47,7 +42,7 @@ async function fetchBeaconChainData(validatorPubkey) {
 }
 
 async function fetchOnChainData(tokenId) {
-    const tokenData = await commonFetchTokenData(currentNetwork, tokenId);
+    const tokenData = await commonFetchTokenData(tokenId);
     if (!tokenData) return null;
 
     let validatorKey = tokenData.validatorKey;
@@ -87,8 +82,7 @@ async function fetchOnChainData(tokenId) {
 function updateDepositLink(tokenId) {
     const depositLink = document.getElementById('depositLink');
     if (depositLink) {
-        const networkName = Object.keys(NETWORKS).find(key => NETWORKS[key] === currentNetwork) || 'chiado';
-        depositLink.href = `/deposit.html?token=${tokenId}&network=${networkName}`;
+        depositLink.href = `/deposit.html?token=${tokenId}`;
     }
 }
 
@@ -184,7 +178,7 @@ async function updateTokenDisplay(tokenId) {
     }
 
     document.querySelectorAll('.balance-unit').forEach(el => {
-        el.textContent = currentNetwork.currency;
+        el.textContent = NETWORK.currency;
     });
 }
 
@@ -208,11 +202,6 @@ async function navigateToToken() {
 async function loadTokenFromURL() {
     const params = new URLSearchParams(window.location.search);
 
-    const networkParam = params.get('network');
-    if (networkParam && NETWORKS[networkParam.toLowerCase()]) {
-        currentNetwork = NETWORKS[networkParam.toLowerCase()];
-    }
-
     const tokenId = params.get('token');
     if (tokenId) {
         try {
@@ -226,7 +215,7 @@ async function loadTokenFromURL() {
                 await updateTokenDisplay(tokenId);
     } else {
         document.querySelectorAll('.balance-unit').forEach(el => {
-            el.textContent = currentNetwork.currency;
+            el.textContent = NETWORK.currency;
         });
     }
 }
@@ -274,57 +263,45 @@ async function pullExecutionLayerBalance() {
         
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${currentNetwork.chainId.toString(16)}` }]
+            params: [{ chainId: `0x${NETWORK.chainId.toString(16)}` }]
         });
-        
-        if (currentNetwork.isGno) {
-            const sbcIface = new ethers.Interface(SBC_DEPOSIT_CONTRACT_ABI);
-            const erc20Iface = new ethers.Interface(ERC20ABI);
 
-            const withdrawalAddressRaw = await provider.request({
-                method: 'eth_call',
-                params: [{ to: currentNetwork.mainAddress, data: iface.encodeFunctionData('withdrawalAddressOf(uint256)', [tokenIdBigInt]) }, 'latest']
-            });
-            const withdrawalAddress = iface.decodeFunctionResult('withdrawalAddressOf(uint256)', withdrawalAddressRaw)[0];
+        const sbcIface = new ethers.Interface(SBC_DEPOSIT_CONTRACT_ABI);
+        const erc20Iface = new ethers.Interface(ERC20ABI);
 
-            const [withdrawableRaw, gnoBalanceRaw] = await Promise.all([
-                provider.request({ method: 'eth_call', params: [{ to: currentNetwork.depositsContractAddress, data: sbcIface.encodeFunctionData('withdrawableAmount', [withdrawalAddress]) }, 'latest'] }),
-                provider.request({ method: 'eth_call', params: [{ to: currentNetwork.gnoTokenAddress, data: erc20Iface.encodeFunctionData('balanceOf', [withdrawalAddress]) }, 'latest'] }),
-            ]);
-            const totalAmount = BigInt(withdrawableRaw) + BigInt(gnoBalanceRaw);
+        const withdrawalAddressRaw = await provider.request({
+            method: 'eth_call',
+            params: [{ to: NETWORK.mainAddress, data: iface.encodeFunctionData('withdrawalAddressOf(uint256)', [tokenIdBigInt]) }, 'latest']
+        });
+        const withdrawalAddress = iface.decodeFunctionResult('withdrawalAddressOf(uint256)', withdrawalAddressRaw)[0];
 
-            const claimData = sbcIface.encodeFunctionData('claimWithdrawal', [withdrawalAddress]);
-            const transferData = erc20Iface.encodeFunctionData('transfer', [userAddress, totalAmount]);
-            const arbitraryCallData = iface.encodeFunctionData(iface.getFunction('arbitraryCall(uint256,address,bytes)'), [tokenIdBigInt, currentNetwork.gnoTokenAddress, transferData]);
+        const [withdrawableRaw, gnoBalanceRaw] = await Promise.all([
+            provider.request({ method: 'eth_call', params: [{ to: NETWORK.depositsContractAddress, data: sbcIface.encodeFunctionData('withdrawableAmount', [withdrawalAddress]) }, 'latest'] }),
+            provider.request({ method: 'eth_call', params: [{ to: NETWORK.gnoTokenAddress, data: erc20Iface.encodeFunctionData('balanceOf', [withdrawalAddress]) }, 'latest'] }),
+        ]);
+        const totalAmount = BigInt(withdrawableRaw) + BigInt(gnoBalanceRaw);
 
-            const batchId = await window.ethereum.request({
-                method: 'wallet_sendCalls',
-                params: [{
-                    version: '2.0.0',
-                    chainId: '0x' + currentNetwork.chainId.toString(16),
-		    atomicRequired: false,
-                    from: userAddress,
-                    calls: [
-                        { to: currentNetwork.depositsContractAddress, data: claimData, value: '0x0' },
-                        { to: currentNetwork.mainAddress, data: arbitraryCallData, value: '0x0' }
-                    ]
-                }]
-            });
+        const claimData = sbcIface.encodeFunctionData('claimWithdrawal', [withdrawalAddress]);
+        const transferData = erc20Iface.encodeFunctionData('transfer', [userAddress, totalAmount]);
+        const arbitraryCallData = iface.encodeFunctionData(iface.getFunction('arbitraryCall(uint256,address,bytes)'), [tokenIdBigInt, NETWORK.gnoTokenAddress, transferData]);
 
-            button.textContent = 'Waiting...';
-            await waitForBatch(window.ethereum, batchId);
-            alert(`Batch confirmed! ID: ${batchId}`);
-        } else {
-            const fn = iface.getFunction('pullNativeBalance(uint256)');
-            const pullCallData = iface.encodeFunctionData(fn, [tokenIdBigInt]);
+        const batchId = await window.ethereum.request({
+            method: 'wallet_sendCalls',
+            params: [{
+                version: '2.0.0',
+                chainId: '0x' + NETWORK.chainId.toString(16),
+                atomicRequired: false,
+                from: userAddress,
+                calls: [
+                    { to: NETWORK.depositsContractAddress, data: claimData, value: '0x0' },
+                    { to: NETWORK.mainAddress, data: arbitraryCallData, value: '0x0' }
+                ]
+            }]
+        });
 
-            const txHash = await window.ethereum.request({
-                method: 'eth_sendTransaction',
-                params: [{ to: currentNetwork.mainAddress, data: pullCallData, from: userAddress }]
-            });
-
-            alert(`Transaction sent! Hash: ${txHash}\nPlease wait for confirmation.`);
-        }
+        button.textContent = 'Waiting...';
+        await waitForBatch(window.ethereum, batchId);
+        alert(`Batch confirmed! ID: ${batchId}`);
 
         setTimeout(async () => {
             await updateTokenDisplay(tokenId);
@@ -375,13 +352,13 @@ async function pullNative() {
         
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${currentNetwork.chainId.toString(16)}` }]
+            params: [{ chainId: `0x${NETWORK.chainId.toString(16)}` }]
         });
         
         const pullNativeCallData = iface.encodeFunctionData('pullNative', [tokenIdBigInt, userAddress]);
         
         const transaction = {
-            to: currentNetwork.mainAddress,
+            to: NETWORK.mainAddress,
             data: pullNativeCallData,
             from: userAddress
         };
@@ -395,15 +372,15 @@ async function pullNative() {
         
         setTimeout(async () => {
             await updateTokenDisplay(tokenId);
-            pullNativeButton.disabled = false;
-            pullNativeButton.textContent = 'Pull XDAI';
+            button.disabled = false;
+            button.textContent = 'Pull XDAI';
         }, 5000);
         
     } catch (error) {
         console.error('Error pulling XDAI:', error);
         alert(`Error pulling XDAI: ${error.message}`);
-        pullNativeButton.disabled = false;
-        pullNativeButton.textContent = 'Pull XDAI';
+        button.disabled = false;
+        button.textContent = 'Pull XDAI';
     }
 }
 
@@ -442,13 +419,13 @@ async function requestFullWithdrawal() {
 
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${currentNetwork.chainId.toString(16)}` }]
+            params: [{ chainId: `0x${NETWORK.chainId.toString(16)}` }]
         });
 
         const withdrawalCallData = iface.encodeFunctionData('requestFullWithdrawal', [tokenIdBigInt]);
 
         const transaction = {
-            to: currentNetwork.mainAddress,
+            to: NETWORK.mainAddress,
             data: withdrawalCallData,
             from: userAddress,
             value: '1000000000'
@@ -523,13 +500,13 @@ async function requestPartialWithdrawal() {
 
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${currentNetwork.chainId.toString(16)}` }]
+            params: [{ chainId: `0x${NETWORK.chainId.toString(16)}` }]
         });
 
         const withdrawalCallData = iface.encodeFunctionData('requestPartialWithdrawal', [tokenIdBigInt, amountWei]);
 
         const transaction = {
-            to: currentNetwork.mainAddress,
+            to: NETWORK.mainAddress,
             data: withdrawalCallData,
             from: userAddress,
             value: '1000000000'
@@ -591,13 +568,13 @@ async function switchToCompounding() {
 
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${currentNetwork.chainId.toString(16)}` }]
+            params: [{ chainId: `0x${NETWORK.chainId.toString(16)}` }]
         });
 
         const callData = iface.encodeFunctionData('requestSwitchToCompounding', [tokenIdBigInt]);
 
         const transaction = {
-            to: currentNetwork.mainAddress,
+            to: NETWORK.mainAddress,
             data: callData,
             from: userAddress,
             value: '1000000000'

@@ -1,8 +1,8 @@
 import { ethers } from 'ethers';
-import { NETWORKS, getNetwork } from './networks.js';
+import { NETWORK } from './networks.js';
 import { IERC8270ABI } from '@erc-8270/contracts';
 
-export { NETWORKS, getNetwork };
+export { NETWORK };
 
 export const ERC20ABI = [
     "event Transfer(address indexed from, address indexed to, uint256 value)",
@@ -18,21 +18,19 @@ export const SBC_DEPOSIT_CONTRACT_ABI = [
     "function claimWithdrawal(address) external",
 ];
 
-
-export function getExplorerUrl(network, txHash) {
-    return network.explorerUrl ? `${network.explorerUrl}/tx/${txHash}` : `#${txHash}`;
+export function getExplorerUrl(txHash) {
+    return NETWORK.explorerUrl ? `${NETWORK.explorerUrl}/tx/${txHash}` : `#${txHash}`;
 }
 
-export function makeContract(network) {
-    const provider = new ethers.JsonRpcProvider(network.rpcUrl);
-    const abi = IERC8270ABI;
-    return new ethers.Contract(network.mainAddress, abi, provider);
+export function makeContract() {
+    const provider = new ethers.JsonRpcProvider(NETWORK.rpcUrl);
+    return new ethers.Contract(NETWORK.mainAddress, IERC8270ABI, provider);
 }
 
-export async function fetchBeaconChainData(network, validatorPubkey) {
+export async function fetchBeaconChainData(validatorPubkey) {
     try {
         const cleanPubkey = validatorPubkey.startsWith('0x') ? validatorPubkey.slice(2) : validatorPubkey;
-        const response = await fetch(`${network.beaconApiUrl}/eth/v1/beacon/states/head/validators/0x${cleanPubkey}`);
+        const response = await fetch(`${NETWORK.beaconApiUrl}/eth/v1/beacon/states/head/validators/0x${cleanPubkey}`);
         if (!response.ok) return null;
 
         const result = await response.json();
@@ -40,7 +38,7 @@ export async function fetchBeaconChainData(network, validatorPubkey) {
 
         const validator = result.data;
         const balanceGwei = BigInt(validator.balance);
-        const balance = Number(balanceGwei) / 1e9 / (network.isGno ? 32 : 1);
+        const balance = Number(balanceGwei) / 1e9 / 32;
 
         const withdrawalCredentials = validator.validator.withdrawal_credentials;
         const withdrawalAddress = '0x' + withdrawalCredentials.slice(-40);
@@ -66,62 +64,54 @@ export async function fetchBeaconChainData(network, validatorPubkey) {
     }
 }
 
-export async function fetchWithdrawalAddress(network, tokenId) {
+export async function fetchWithdrawalAddress(tokenId) {
     try {
-        const tokenIdBigInt = BigInt(tokenId);
-        const contract = makeContract(network);
-
-            return await contract.withdrawalAddressOf(tokenIdBigInt);
+        const contract = makeContract();
+        return await contract.withdrawalAddressOf(BigInt(tokenId));
     } catch (error) {
         console.warn('Failed to fetch withdrawal address:', error);
         return null;
     }
 }
 
-export async function fetchTokenData(network, tokenId) {
-    let executionBalance = 0;
-    let secondaryBalance = 0;
-    let expectedWithdrawalAddress = null;
-    let tokenOwner = null;
+export async function fetchTokenData(tokenId) {
     try {
         const tokenIdBigInt = BigInt(tokenId);
-        const contract = makeContract(network);
+        const contract = makeContract();
 
-            try {
-                expectedWithdrawalAddress = await contract.withdrawalAddressOf(tokenIdBigInt);
-            } catch (e) {
-                console.warn('Could not fetch withdrawal address:', e);
-            }
+        let expectedWithdrawalAddress = null;
+        try {
+            expectedWithdrawalAddress = await contract.withdrawalAddressOf(tokenIdBigInt);
+        } catch (e) {
+            console.warn('Could not fetch withdrawal address:', e);
+        }
 
-let nativeBalance = 0;
+        const provider = new ethers.JsonRpcProvider(NETWORK.rpcUrl);
+        const depositContract = new ethers.Contract(NETWORK.depositsContractAddress, SBC_DEPOSIT_CONTRACT_ABI, provider);
+        const gnoToken = new ethers.Contract(NETWORK.gnoTokenAddress, ERC20ABI, provider);
 
-            try {
-	    const provider = new ethers.JsonRpcProvider(network.rpcUrl);
+        let nativeBalance = 0;
+        try {
             nativeBalance = Number(await provider.getBalance(expectedWithdrawalAddress)) / 1e18;
-            } catch (e) {
-                console.warn('Could not fetch native balance:', e);
-            }
+        } catch (e) {
+            console.warn('Could not fetch native balance:', e);
+        }
 
-	    let executionBalance = Number(0);
-	    let secondaryBalance = Number(0);
-	    if (network.isGno) {
-    const provider = new ethers.JsonRpcProvider(network.rpcUrl);
-    const depositContract = new ethers.Contract(network.depositsContractAddress, SBC_DEPOSIT_CONTRACT_ABI, provider);
-		    const gnoToken = new ethers.Contract(network.gnoTokenAddress, ERC20ABI, provider);
-		    executionBalance = Number(await depositContract.withdrawableAmount(expectedWithdrawalAddress) + await gnoToken.balanceOf(expectedWithdrawalAddress)) / 1e18;
-		    secondaryBalance = nativeBalance;
-	    } else {
-		    executionBalance = nativeBalance;
-	    }
+        const executionBalance = Number(
+            await depositContract.withdrawableAmount(expectedWithdrawalAddress) +
+            await gnoToken.balanceOf(expectedWithdrawalAddress)
+        ) / 1e18;
+        const secondaryBalance = nativeBalance;
 
         let validatorKey = null;
         try {
             const [validatorKeyLo, validatorKeyHi] = await contract.validatorKeyOf(tokenIdBigInt);
-	    validatorKey = ethers.concat([validatorKeyLo, validatorKeyHi]);
+            validatorKey = ethers.concat([validatorKeyLo, validatorKeyHi]);
         } catch (e) {
             console.warn('Could not fetch validator key:', e);
         }
 
+        let tokenOwner = null;
         try {
             tokenOwner = await contract.ownerOf(tokenIdBigInt);
         } catch (e) {
@@ -130,7 +120,7 @@ let nativeBalance = 0;
 
         let beaconData = null;
         if (validatorKey) {
-            beaconData = await fetchBeaconChainData(network, validatorKey);
+            beaconData = await fetchBeaconChainData(validatorKey);
         }
 
         return {

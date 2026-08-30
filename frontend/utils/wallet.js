@@ -1,4 +1,4 @@
-import { NETWORKS } from '@erc-8270/common';
+import { NETWORK } from '@erc-8270/common';
 
 export function autoConnect(connectWallet) {
     if (typeof window.ethereum !== 'undefined') {
@@ -15,8 +15,7 @@ export function autoConnect(connectWallet) {
 export function createWalletState() {
     return {
         userAddress: null,
-        provider: null,
-        currentNetwork: NETWORKS.hoodi
+        provider: null
     };
 }
 
@@ -40,7 +39,7 @@ export async function connectWallet(state, { onSuccess, onError, uiElements }) {
         walletConnected.style.display = 'flex';
         walletAddressEl.textContent = formatAddress(state.userAddress);
 
-        onSuccess?.(`Wallet connected to ${state.currentNetwork.name} (${state.currentNetwork.currency})!`);
+        onSuccess?.(`Wallet connected to ${NETWORK.name} (${NETWORK.currency})!`);
 
         state.provider.on('accountsChanged', (accounts) => handleAccountsChanged(state, accounts, uiElements));
         state.provider.on('chainChanged', () => window.location.reload());
@@ -66,13 +65,13 @@ function formatAddress(address) {
     return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
 }
 
-export async function checkWalletCapabilities(provider, userAddress, chainId) {
+export async function checkWalletCapabilities(provider, userAddress) {
     try {
         const capabilities = await provider.request({
             method: 'wallet_getCapabilities',
             params: [userAddress]
         });
-        const chainIdHex = '0x' + chainId.toString(16);
+        const chainIdHex = '0x' + NETWORK.chainId.toString(16);
         return capabilities?.[chainIdHex]?.atomicBatch?.supported === true;
     } catch (error) {
         console.warn('wallet_getCapabilities not supported:', error);

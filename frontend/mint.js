@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { IERC8270ABI } from '@erc-8270/contracts';
+import { NETWORK } from '@erc-8270/common';
 import { TRANSFER_TOPIC, getExplorerUrl } from './utils/constants.js'
 import { formatAddress, showError, showSuccess } from './utils/ui.js';
 import { validateValidatorKey, validateAddress } from './utils/validation.js';
@@ -72,7 +73,7 @@ async function mintNFT() {
 
         const tx = {
             from: state.userAddress,
-            to: state.currentNetwork.mainAddress,
+            to: NETWORK.mainAddress,
             data: calldata
         };
 
@@ -84,7 +85,7 @@ async function mintNFT() {
 
         txHashEl.textContent = formatAddress(txHash);
         txHashEl.style.cursor = 'pointer';
-        txHashEl.onclick = () => window.open(getExplorerUrl(txHash, state.currentNetwork.chainId), '_blank');
+        txHashEl.onclick = () => window.open(getExplorerUrl(txHash), '_blank');
         txStatusEl.textContent = 'Pending...';
         txStatusEl.className = 'status-value status-pending';
         showSuccess(statusMessage, `Transaction submitted! Hash: ${formatAddress(txHash)}`);
@@ -136,7 +137,7 @@ function extractTokenIdFromReceipt(receipt) {
 
 function updateMintButtonState() {
     const keyValidation = validateValidatorKey(validatorKeyInput.value.trim());
-    mintButton.disabled = !keyValidation.valid || !addressValidation.valid || !state.userAddress;
+    mintButton.disabled = !keyValidation.valid || !state.userAddress;
 }
 
 connectButton.addEventListener('click', handleConnectWallet);

@@ -15,9 +15,6 @@ export const ERC20_ABI = [
 
 export const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
-export function getExplorerUrl(txHash, chainId, network) {
-    if (network?.explorerUrl) {
-        return commonGetExplorerUrl(network, txHash);
-    }
-    return `#${txHash}`;
+export function getExplorerUrl(txHash) {
+    return commonGetExplorerUrl(txHash);
 }

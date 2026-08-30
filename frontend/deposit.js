@@ -1,13 +1,11 @@
 import { ethers } from 'ethers';
-import { IERC8270ABI, DepositsABI, DepositsGnoABI } from '@erc-8270/contracts';
+import { DepositsGnoABI } from '@erc-8270/contracts';
+import { NETWORK, fetchWithdrawalAddress as commonFetchWithdrawalAddress } from '@erc-8270/common';
 import { ERC20_ABI, getExplorerUrl } from './utils/constants.js';
 import { formatAddress, showError, showSuccess } from './utils/ui.js';
 import { validateHexField } from './utils/validation.js';
 import { waitForTransaction, waitForBatch } from './utils/transaction.js';
 import { autoConnect, createWalletState, connectWallet, checkWalletCapabilities } from './utils/wallet.js';
-import { fetchWithdrawalAddress as commonFetchWithdrawalAddress } from '@erc-8270/common';
-
-const abi = new ethers.Interface(IERC8270ABI);
 
 const state = createWalletState();
 let parsedDepositData = null;
@@ -96,7 +94,7 @@ function parseDepositData() {
             }
         }
 
-        const expectedNetworkName = state.currentNetwork.id;
+        const expectedNetworkName = NETWORK.id;
         if (depositItem.network_name.toLowerCase() !== expectedNetworkName) {
             showError(statusMessage, `Invalid network: ${depositItem.network_name}. Expected "${expectedNetworkName}"`);
             return;
@@ -155,7 +153,7 @@ function parseDepositData() {
         };
 
         parsedNetworkEl.textContent = parsedDepositData.networkName;
-        parsedAmountEl.textContent = `${Number(amount) / (state.currentNetwork.isGno ? 32 : 1) / 1e9} ${state.currentNetwork.currency}`;
+        parsedAmountEl.textContent = `${Number(amount) / 32 / 1e9} ${NETWORK.currency}`;
         parsedSignatureEl.textContent = formatAddress(parsedDepositData.signature);
         parsedCompoundingEl.textContent = isCompounding ? 'Yes' : 'No';
 
@@ -195,17 +193,13 @@ async function deposit() {
         const tokenIdBigInt = BigInt(tokenId);
         const compounding = parsedDepositData.isCompounding;
         let amountInWei = parsedDepositData.amount * 1000000000n;
-        amountInWei /= state.currentNetwork.isGno ? 32n : 1n;
+        amountInWei /= 32n;
 
-        if (state.currentNetwork.isGno) {
-            const supportsBatching = await checkWalletCapabilities(state.provider, state.userAddress, state.currentNetwork.chainId);
-            if (supportsBatching) {
-                await depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei);
-            } else {
-                await depositWithoutBatchingERC20(tokenIdBigInt, compounding, amountInWei);
-            }
+        const supportsBatching = await checkWalletCapabilities(state.provider, state.userAddress);
+        if (supportsBatching) {
+            await depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei);
         } else {
-            await depositPayable(tokenIdBigInt, compounding, amountInWei);
+            await depositWithoutBatchingERC20(tokenIdBigInt, compounding, amountInWei);
         }
     } catch (error) {
         console.error('Deposit failed:', error);
@@ -220,8 +214,8 @@ async function deposit() {
 
 async function approveToken(amount) {
     const erc20Iface = new ethers.Interface(ERC20_ABI);
-    const depositsAddress = state.currentNetwork.depositsAddress;
-    const tokenAddress = state.currentNetwork.gnoTokenAddress;
+    const depositsAddress = NETWORK.depositsAddress;
+    const tokenAddress = NETWORK.gnoTokenAddress;
     const approveCalldata = erc20Iface.encodeFunctionData('approve', [depositsAddress, amount]);
 
     const tx = {
@@ -244,8 +238,8 @@ async function depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei)
 
     const erc20Iface = new ethers.Interface(ERC20_ABI);
     const depositsIface = new ethers.Interface(DepositsGnoABI);
-    const depositsAddress = state.currentNetwork.depositsAddress;
-    const tokenAddress = state.currentNetwork.gnoTokenAddress;
+    const depositsAddress = NETWORK.depositsAddress;
+    const tokenAddress = NETWORK.gnoTokenAddress;
     const approveCalldata = erc20Iface.encodeFunctionData('approve', [depositsAddress, amountInWei]);
 
     const signatureBytes = ethers.getBytes(parsedDepositData.signature);
@@ -270,7 +264,7 @@ async function depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei)
         method: 'wallet_sendCalls',
         params: [{
 	    version: '2.0.0',
-            chainId: '0x' + state.currentNetwork.chainId.toString(16),
+            chainId: '0x' + NETWORK.chainId.toString(16),
             atomicRequired: false,
             from: state.userAddress,
             calls: calls
@@ -293,15 +287,15 @@ async function depositWithBatchingERC20(tokenIdBigInt, compounding, amountInWei)
 async function depositWithoutBatchingERC20(tokenIdBigInt, compounding, amountInWei) {
     showSuccess(statusMessage, 'Wallet does not support EIP-5792 batching. Using two-step process...');
 
-    txStatusEl.textContent = `Approving ${state.currentNetwork.currency} token...`;
-    showSuccess(statusMessage, `Approving ${state.currentNetwork.currency} token spending...`);
+    txStatusEl.textContent = `Approving ${NETWORK.currency} token...`;
+    showSuccess(statusMessage, `Approving ${NETWORK.currency} token spending...`);
 
     const approveTxHash = await approveToken(amountInWei);
     showSuccess(statusMessage, `Approval submitted! Hash: ${formatAddress(approveTxHash)}`);
 
     txStatusEl.textContent = 'Waiting for approval confirmation...';
     await waitForTransaction(state.provider, approveTxHash);
-    showSuccess(statusMessage, `${state.currentNetwork.currency} token approved successfully!`);
+    showSuccess(statusMessage, `${NETWORK.currency} token approved successfully!`);
 
     txStatusEl.textContent = 'Preparing deposit...';
 
@@ -316,7 +310,7 @@ async function depositWithoutBatchingERC20(tokenIdBigInt, compounding, amountInW
         amountInWei
     ]);
 
-    const depositsAddress = state.currentNetwork.depositsAddress;
+    const depositsAddress = NETWORK.depositsAddress;
     const tx = {
         from: state.userAddress,
         to: depositsAddress,
@@ -333,58 +327,7 @@ async function depositWithoutBatchingERC20(tokenIdBigInt, compounding, amountInW
 
     txHashEl.textContent = formatAddress(txHash);
     txHashEl.style.cursor = 'pointer';
-    txHashEl.onclick = () => window.open(getExplorerUrl(txHash, state.currentNetwork.chainId), '_blank');
-    txStatusEl.textContent = 'Pending...';
-    txStatusEl.className = 'status-value status-pending';
-    showSuccess(statusMessage, `Deposit transaction submitted! Hash: ${formatAddress(txHash)}`);
-
-    const receipt = await waitForTransaction(state.provider, txHash);
-
-    if (receipt.status === '0x1') {
-        txStatusEl.textContent = 'Confirmed';
-        txStatusEl.className = 'status-value status-active';
-        showSuccess(statusMessage, 'Deposit successful! Your validator is now being activated.');
-    } else {
-        txStatusEl.textContent = 'Failed';
-        txStatusEl.className = 'status-value status-exited';
-        showError(statusMessage, 'Transaction failed');
-    }
-}
-
-async function depositPayable(tokenIdBigInt, compounding, amountInWei) {
-    showSuccess(statusMessage, 'Using native ETH deposit (no approval needed)...');
-
-    txStatusEl.textContent = 'Preparing deposit...';
-
-    const depositsIface = new ethers.Interface(DepositsABI);
-    const signatureBytes = ethers.getBytes(parsedDepositData.signature);
-    const depositDataRootBytes = ethers.getBytes(parsedDepositData.depositDataRoot);
-    const calldata = depositsIface.encodeFunctionData('frontrunnable', [
-        tokenIdBigInt,
-        compounding,
-        signatureBytes,
-        depositDataRootBytes
-    ]);
-
-    const depositsAddress = state.currentNetwork.depositsAddress;
-    const tx = {
-        from: state.userAddress,
-        to: depositsAddress,
-        data: calldata,
-        value: '0x' + amountInWei.toString(16)
-    };
-
-    txStatusEl.textContent = 'Waiting for confirmation...';
-    showSuccess(statusMessage, 'Please confirm the deposit transaction...');
-
-    const txHash = await state.provider.request({
-        method: 'eth_sendTransaction',
-        params: [tx]
-    });
-
-    txHashEl.textContent = formatAddress(txHash);
-    txHashEl.style.cursor = 'pointer';
-    txHashEl.onclick = () => window.open(getExplorerUrl(txHash, state.currentNetwork.chainId), '_blank');
+    txHashEl.onclick = () => window.open(getExplorerUrl(txHash), '_blank');
     txStatusEl.textContent = 'Pending...';
     txStatusEl.className = 'status-value status-pending';
     showSuccess(statusMessage, `Deposit transaction submitted! Hash: ${formatAddress(txHash)}`);
@@ -407,7 +350,7 @@ async function fetchWithdrawalAddress(tokenId) {
         withdrawalAddressGroup.style.display = 'block';
         withdrawalAddressInput.value = 'Loading...';
 
-        const address = await commonFetchWithdrawalAddress(state.currentNetwork, tokenId);
+        const address = await commonFetchWithdrawalAddress(tokenId);
         if (!address) {
             throw new Error('No address returned');
         }
