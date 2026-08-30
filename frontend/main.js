@@ -317,9 +317,9 @@ async function pullExecutionLayerBalance() {
     }
 }
 
-async function pullNative() {
+async function pullSecondaryBalance() {
     const tokenId = document.getElementById('tokenInput').value.trim();
-    const button = document.getElementById('claimNativeButton');
+    const button = document.getElementById('claimSecondaryButton');
     
     const iface = new ethers.Interface(IERC8270ABI);
 
@@ -355,7 +355,7 @@ async function pullNative() {
             params: [{ chainId: `0x${NETWORK.chainId.toString(16)}` }]
         });
         
-        const pullNativeCallData = iface.encodeFunctionData('pullNative', [tokenIdBigInt, userAddress]);
+        const pullNativeCallData = iface.encodeFunctionData('pullNativeBalance(uint256,address)', [tokenIdBigInt, userAddress]);
         
         const transaction = {
             to: NETWORK.mainAddress,
@@ -618,7 +618,7 @@ function initDisclaimer() {
 
 window.navigateToToken = navigateToToken;
 window.pullExecutionLayerBalance = pullExecutionLayerBalance;
-window.pullNative = pullNative;
+window.pullSecondaryBalance = pullSecondaryBalance;
 window.requestFullWithdrawal = requestFullWithdrawal;
 window.requestPartialWithdrawal = requestPartialWithdrawal;
 window.switchToCompounding = switchToCompounding;
