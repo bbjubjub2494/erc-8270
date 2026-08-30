@@ -68,7 +68,7 @@ async function mintNFT() {
         const validatorKeyBytes = ethers.getBytes(keyValidation.key);
         const validatorKeyHi = validatorKeyBytes.slice(0, 32);
         const validatorKeyLo = validatorKeyBytes.slice(32);
-        const calldata = abi.encodeFunctionData('mint(bytes32, bytes16)', [validatorKeyHi, validatorKeyLo]);
+        const calldata = abi.encodeFunctionData('mint(bytes32, bytes16, address)', [validatorKeyHi, validatorKeyLo, state.userAddress]);
 
         const tx = {
             from: state.userAddress,
